@@ -14,7 +14,8 @@ It started as a fork of [obra/superpowers](https://github.com/obra/superpowers) 
 1. **The agent decides.**
    Superpowers stops for your approval at each stage: the design, the spec, the plan, the execution mode, and the finish.
    Baspowers lets the agent make routine, reversible decisions itself, say what it decided, and keep going.
-   It stops only for information it cannot find, a real change of scope, or an irreversible or external action such as a merge or a push.
+   Brainstorming uses project conventions for design records. The writing-plans skill is unchanged; when the reviewed design exists only in chat, hand it to the planner to embed as the plan's Spec section.
+   It stops for information it cannot find, a real change of scope, or an irreversible or external action such as a merge or a push.
 2. **Ambiguity goes to a second model, not to you.**
    When a hard technical decision stays ambiguous after the agent has read the code, tests, and history, it asks the other model family for advice (Claude asks GPT-6 Astra, Codex asks Claude Opus 5.5), then decides.
    The same second model also reviews pull requests before they are merged.
@@ -57,8 +58,8 @@ Every upstream skill is renamed from superpowers to baspowers; that rename alone
 
 | Skill | What it does | What changed | `SKILL.md` size |
 |---|---|---|---|
-| `using-baspowers` | Bootstrap: pick the skills that apply at the start of each task | Loads skills once per task instead of before every response; agent decides routine, reversible work itself; adds a terse response style adapted from [caveman](https://github.com/JuliusBrussee/caveman), with a five-item list cap from [i-have-adhd](https://github.com/ayghri/i-have-adhd); adds minimal-change coding rules adapted from [ponytail](https://github.com/DietrichGebert/ponytail) | +120% (492 → 1083) |
-| `brainstorming` | Turn an idea into a checked design before building | No approval gates (agent presents the design and proceeds); keeps v6.4.2, not the unreleased `dev` rebuild | -12% (2613 → 2287) |
+| `using-baspowers` | Bootstrap: pick the skills that apply at the start of each task | Starts from canonical project instructions; loads skills once per task instead of before every response; agent decides routine, reversible work itself; adds a terse response style adapted from [caveman](https://github.com/JuliusBrussee/caveman), with a five-item list cap from [i-have-adhd](https://github.com/ayghri/i-have-adhd); adds minimal-change coding rules adapted from [ponytail](https://github.com/DietrichGebert/ponytail) | +136% (492 → 1162) |
+| `brainstorming` | Turn an idea into a checked design before building | Classifies design records by local convention and respects the project's approval gates; keeps v6.4.2, not the unreleased `dev` rebuild | -4% (2613 → 2521) |
 | `writing-plans` | Write a step-by-step implementation plan from a spec | Agent picks the execution mode instead of asking and records it in the plan | -3% (1639 → 1593) |
 | `executing-plans` | Execute a plan yourself in this session, with one final review | Creates an isolated branch instead of asking for consent | 0% (3267 → 3274) |
 | `subagent-driven-development` | Execute a plan task by task with fresh subagents and reviews | Creates an isolated branch instead of asking for consent; controller rules on plan-mandated findings | +2% (4871 → 4980) |
