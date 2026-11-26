@@ -33,7 +33,9 @@ Compare every row with the same request on the base revision.
 - These fixtures are text-level scenarios. They are read against the skill text
   and repository rules; no model runs are recorded here, so a row's evidence is
   the instruction path it exercises, not a measured pass rate.
-- The helper CLI still extracts only `### Task N` headings: on a phase plan that
-  numbers units as `P2-T1`, `task-brief` exits 3 with `task 1 not found`. The
-  brief contract in these rows is therefore checked on the text an executor
-  writes by hand until the CLI changes.
+- The helper CLI extracts `Task <ID>` headings, including `Task P2-T1`, and
+  keeps nested headings and fenced examples in the task body. A phase plan
+  whose units are not Task headings needs an explicit brief passed with
+  `--brief FILE`; a phase document is rejected rather than turned into an
+  empty brief. The brief contract in these rows is checked on that explicit
+  brief or on the extracted task text.
