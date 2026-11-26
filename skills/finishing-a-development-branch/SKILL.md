@@ -11,6 +11,8 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
+Check the requested action against repository rules and your role before running tests or changing Git state. For read-only work, use only non-mutating checks, report the evidence and stop. If the requested integration is not permitted, preserve the branch or detached HEAD and worktree, report the head SHA, and hand off.
+
 ## Step 1: Verify Tests
 
 Run the project's full test suite (`npm test` / `cargo test` / `pytest` / `go test ./...`).
@@ -61,8 +63,9 @@ ambiguity: integrating into the wrong base is expensive to undo.
 Follow the requested outcome already present in the task or repository
 instructions:
 
+- **PR merge only:** For a request to merge a specific PR, verify someone else made the last commit and you did not approve the PR (approve or merge, never both). If either check fails or is uncertain, hand off the head SHA. Follow the repo's PR procedure. Without one, use its permitted forge merge method with the reviewed head SHA as a merge precondition; if you cannot enforce that match, hand off. Never use `--admin`, merge locally or push directly to the default branch as a substitute.
 - If the request includes opening a PR, push and create the PR.
-- If the request includes local integration, merge locally.
+- If local integration itself is requested and permitted, use Option 1. The PR role checks do not apply to a local merge.
 - If no integration side effect was requested, keep the branch and worktree,
   report their state, and stop. Do not turn completion into a permission menu.
 
@@ -72,14 +75,7 @@ completion question.
 
 ## Step 5: Execute Choice
 
-Before merging or pushing, list the specs and plans this branch added:
-
-```bash
-git diff --name-only --diff-filter=A <base-branch>...HEAD -- docs/baspowers
-```
-
-If it lists files, `git rm` them and commit (`chore: remove baspowers specs and plans`).
-They are working notes for the agents, not part of the change.
+Preserve tracked documentation, whether new or edited. A legacy path such as `docs/baspowers/` does not make a file disposable. If its purpose is unclear, list the path and recommend keeping or relocating it; leave it intact. Remove only your own disposable scratch and only when cleanup was requested. A request to publish or merge is not a cleanup request.
 
 ### Option 1: Merge Locally
 
@@ -109,7 +105,7 @@ If tests fail on the merged result: stop, leave the worktree and branch in
 place, and investigate — nothing has been pushed, so the merge is local
 and recoverable.
 
-Once the merged result is green: clean up the worktree (Step 6), then
+Once the merged result is green, report and keep the branch and worktree unless cleanup was requested. For requested cleanup, clean up the worktree (Step 6), then
 delete the branch:
 
 ```bash
@@ -162,7 +158,7 @@ git branch -D <feature-branch>
 
 ## Step 6: Cleanup Workspace
 
-**Runs for local merge and confirmed discards.** PR and keep outcomes always
+**Runs for requested post-merge cleanup and confirmed discards.** PR and keep outcomes always
 preserve the worktree. Both callers have already changed directory to the
 main repo root — worktree removal must run from outside the worktree —
 and use the `GIT_DIR`/`GIT_COMMON`/`WORKTREE_PATH` values captured in
@@ -208,7 +204,7 @@ place.
 
 | Option | Merge | Push | Keep Worktree | Cleanup Branch |
 |--------|-------|------|---------------|----------------|
-| 1. Merge locally | yes | - | - | yes |
+| 1. Merge locally | if permitted | - | unless cleanup requested | only on request |
 | 2. Create PR | - | yes | yes | - |
 | 3. Keep as-is | - | - | yes | - |
 | Discard (explicit request only) | - | - | - | yes (force) |
