@@ -17,7 +17,9 @@ Bootstrap once per task, not once per message or tool call.
 ## The Rule
 
 At the **start of each new task**, invoke relevant or requested skills before
-the first substantive response or action. A task continues through follow-up
+the first substantive response or action. For repository work, first identify the
+applicable project instructions using [Repository workflow](references/repository-workflow.md);
+this is part of selecting the skills, not a general exploration pass. A task continues through follow-up
 questions, status checks, corrections, and its tool calls.
 
 **Do not re-read or re-invoke** the same skill on every turn. When its contents
@@ -119,4 +121,4 @@ These thoughts mean STOP—you're rationalizing:
 
 ## User Instructions
 
-User instructions (CLAUDE.md, AGENTS.md, direct requests) take precedence over skills, which in turn override default behavior. Only skip skill workflows or instructions when your human partner has explicitly told you to.
+User instructions (CLAUDE.md, AGENTS.md, direct requests) take precedence over skills, which in turn override default behavior. Follow the applicable project workflow when it differs from a skill default; no separate override is needed. Keep the rest of the skill.

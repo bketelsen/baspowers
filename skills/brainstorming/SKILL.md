@@ -29,7 +29,7 @@ recognize and correct, grounded in what they want to accomplish.
    it. The note is for visibility, not a permission request: continue
    unless a correction arrives.
 3. **Carry intent into the design.** Preserve the understanding in the
-   selected path's design artifact: the written spec for architectural
+   selected path's design artifact: the design record for architectural
    work, or the in-chat design/probe for bounded work and spikes. Check
    proposed features and technical choices against that understanding.
 
@@ -41,14 +41,15 @@ note concise; its accuracy and the opportunity to correct it matter.
 Do NOT begin implementation until you understand the context, have selected
 an approach, and have checked it against the request. Present the decision for
 visibility, then continue without waiting for routine approval. Stop only when
-the design requires missing information, expands scope materially, or needs
+a required project approval is missing or the design requires missing
+information, expands scope materially, or needs
 new authority for an irreversible or external action.
 
 Implementation includes invoking an implementation skill, writing product
 code, scaffolding, installing product dependencies, or creating an external
 project. Complete the selected path's artifact first: the probe for a spike,
 the short in-chat design for bounded work, and for architectural work the
-written, self-reviewed spec followed by baspowers:writing-plans. Read-only
+self-reviewed design followed by planning. Read-only
 project exploration is allowed before that.
 </AUTONOMY-GATE>
 
@@ -74,7 +75,7 @@ briefly when it helps your human partner follow the work:
 - **Architectural** — new projects, new subsystems, changes that
   restructure how components fit together or alter interfaces others
   depend on. Follow the full process: questions, approaches, sectioned
-  design, written spec, then the writing-plans skill.
+  design, project-appropriate design record, then planning.
 
 When in doubt between two paths, take the heavier one. The ratchet is
 one-way: hidden complexity discovered mid-task upgrades the path —
@@ -84,7 +85,7 @@ say so and step up. Nothing downgrades mid-task.
 
 Every path requires enough design to make implementation intentional. A
 bounded change may need only two sentences in chat. A new todo-list project
-is architectural and gets the written spec and plan. Scale the artifact to
+is architectural and gets a reviewed design and plan. Scale the artifact to
 the selected path. Presenting decisions is a status update, not a permission
 gate. Continue unless one of the authority boundaries above applies.
 
@@ -92,7 +93,7 @@ gate. Continue unless one of the authority boundaries above applies.
 
 | Thought | Reality |
 |---------|---------|
-| "This is too simple to need a design" | Follow the selected path: a bounded change gets a short chat design; an architectural change gets the written spec and plan. Then proceed. |
+| "This is too simple to need a design" | Follow the selected path: a bounded change gets a short chat design; an architectural change gets a reviewed design and plan. Then proceed. |
 | "I'll call it bounded and skip the spec" | Reaching for a label to skip work IS the doubt — take the heavier path. |
 | "I should ask whether this obvious reversible choice is okay" | Routine choices belong to the agent. Decide, state the decision, and proceed. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
@@ -124,9 +125,9 @@ for each item on your path and complete them in order.
 3. **Resolve ambiguity** — inspect first; ask one question only when the answer cannot be inferred safely
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Select and present design** — in sections scaled to their complexity
-6. **Write design doc** — save to `docs/baspowers/specs/YYYY-MM-DD-<topic>-design.md` and commit
-7. **Spec self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-8. **Transition to implementation** — invoke writing-plans skill to create implementation plan
+6. **Record the design** — classify it using the repository workflow below
+7. **Design self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
+8. **Hand off to planning** — follow the project planning procedure, or writing-plans by default
 
 ## Process Flow
 
@@ -142,9 +143,9 @@ digraph brainstorming {
     "Ask clarifying questions" [shape=box];
     "Propose 2-3 approaches" [shape=box];
     "Present design sections" [shape=box];
-    "Write design doc" [shape=box];
-    "Spec self-review\n(fix inline)" [shape=box];
-    "Invoke writing-plans skill" [shape=doublecircle];
+    "Record design by project convention" [shape=box];
+    "Design self-review\n(fix inline)" [shape=box];
+    "Hand off to planning" [shape=doublecircle];
 
     "Classify: spike / bounded / architectural" -> "Present question + probe (2-3 sentences)" [label="spike"];
     "Classify: spike / bounded / architectural" -> "Ask clarifying questions (bounded)" [label="bounded"];
@@ -155,14 +156,13 @@ digraph brainstorming {
     "Explore project context" -> "Ask clarifying questions";
     "Ask clarifying questions" -> "Propose 2-3 approaches";
     "Propose 2-3 approaches" -> "Present design sections";
-    "Present design sections" -> "Write design doc";
-    "Write design doc" -> "Spec self-review\n(fix inline)";
-    "Spec self-review\n(fix inline)" -> "Invoke writing-plans skill";
+    "Present design sections" -> "Record design by project convention";
+    "Record design by project convention" -> "Design self-review\n(fix inline)";
+    "Design self-review\n(fix inline)" -> "Hand off to planning";
 }
 ```
 
-**Terminal states are path-bound.** Architectural: the ONLY skill you
-invoke after brainstorming is writing-plans — never frontend-design,
+**Terminal states are path-bound.** Architectural: hand off only to planning (the project procedure or writing-plans) — never frontend-design,
 mcp-builder, or any other implementation skill. Bounded: after
 the design update, implementation proceeds directly through the normal
 development workflow; no plan document. Spike: the terminal state is a
@@ -180,7 +180,7 @@ is the whole process.
 
 - Check out the current project state first (files, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
+- If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own design → plan → implementation cycle.
 - For appropriately-scoped projects, inspect available context first and ask only questions whose answers materially change the result
 - Prefer multiple choice questions when possible, but open-ended is fine too
 - Only one question per message - if a topic needs more exploration, break it into multiple questions
@@ -218,12 +218,11 @@ is the whole process.
 
 **Documentation:**
 
-- Write the validated design (spec) to `docs/baspowers/specs/YYYY-MM-DD-<topic>-design.md`
-  - (User preferences for spec location override this default)
-- Commit the design document to git
+- Use [Repository workflow](../using-baspowers/references/repository-workflow.md) to classify each part of the design. Follow the local procedure for the record that is needed; do not create one of every kind.
+- With no established layout, self-review the design in chat unless a durable record was requested. For read-only work, present it without writing files. No automatic design-only commit.
 
-**Spec Self-Review:**
-After writing the spec document, look at it with fresh eyes:
+**Design Self-Review:**
+Check the applicable template, index entry, links and decision status. Then review the design:
 
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
@@ -232,15 +231,14 @@ After writing the spec document, look at it with fresh eyes:
 
 Fix any issues inline. No need to re-review — just fix and move on.
 
-**Autonomous Spec Gate:**
-After the spec review passes, summarize the chosen design and proceed to
+**Design handoff:**
+After the design review passes, summarize the chosen design and proceed to
 planning. If review exposes a missing product decision that materially changes
-the result, ask one focused question; otherwise decide and continue.
+the result, ask one focused question; otherwise continue within the project’s approval rules.
 
 **Implementation:**
 
-- Invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other skill. writing-plans is the next step.
+- Follow the repository’s planning procedure, or use writing-plans if none is specified. Planning is the next step, not implementation; stop at the applicable approval gate.
 
 ## Visual Companion
 
