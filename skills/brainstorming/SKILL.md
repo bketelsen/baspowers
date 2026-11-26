@@ -219,7 +219,8 @@ is the whole process.
 **Documentation:**
 
 - Use [Repository workflow](../using-baspowers/references/repository-workflow.md) to classify each part of the design. Follow the local procedure for the record that is needed; do not create one of every kind.
-- With no established layout, self-review the design in chat unless a durable record was requested. For read-only work, present it without writing files. For a durable record, establish the work branch and its worktree **before** writing. Keep planning and the first task in that worktree; commit the record there with the plan or first task, never on the default branch. Pass the worktree and record path to the next worker; do not start over from the default branch with the record left behind.
+- With no established layout, self-review the design in chat unless a durable record was requested. For read-only work, present the design without creating a worktree, writing files or committing.
+- For every durable record you are authorized to write, establish the work branch and its worktree **before** writing. Keep the record there, never on the default branch.
 
 **Design Self-Review:**
 Check the applicable template, index entry, links and decision status. Then review the design:
@@ -231,10 +232,12 @@ Check the applicable template, index entry, links and decision status. Then revi
 
 Fix any issues inline. No need to re-review — just fix and move on.
 
-**Design handoff:**
-Summarize the reviewed design. If a missing product decision materially changes the result, ask one focused question. If project approval is required before planning, stop here until it is recorded.
+**Commit the reviewed record (durable records only):** After self-review and before handoff, commit the record and its required index/link updates on the work branch. If you cannot commit there, stop and report the blocker; do not defer the commit to planning or implementation.
 
-Hand off to the repository's planning procedure, or to writing-plans if none is specified. Pass the path to any durable record. When the design exists only in chat, pass its reviewed text and constraints for the planner to embed as the plan's **Spec** section; the plan then carries its own design, without an invented spec-file path. Planning is the next step, not implementation.
+**Design handoff:**
+Summarize the reviewed design. If a missing product decision materially changes the result, ask one focused question. If approval is required before planning, wait for approval of the exact reviewed revision; a changed revision needs fresh approval.
+
+Hand off to the repository's planning procedure, or to writing-plans if none is specified. For a durable record, pass its branch, commit SHA, worktree and path so the planner uses that revision, not a fresh checkout of the default branch. When the design exists only in chat, pass its reviewed text and constraints for the planner to embed as the plan's **Spec** section; the plan then carries its own design, without an invented spec-file path. Planning is the next step, not implementation.
 
 ## Visual Companion
 
