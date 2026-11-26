@@ -11,9 +11,7 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
-Check the requested action against repository rules and your role before running tests or changing Git state. For read-only work, use only non-mutating checks, report the evidence and stop.
-
-A request to merge a specific PR authorizes only the permitted PR flow, not Option 1 or a direct push to the default branch. Approve or merge a given PR, never both. Before merging, verify someone else made the last commit. Never use `--admin`. If authority or separation of roles is missing or unclear, preserve the worktree and branch (or detached HEAD), report the head SHA and hand off.
+Check the requested action against repository rules and your role before running tests or changing Git state. For read-only work, use only non-mutating checks, report the evidence and stop. If the requested integration is not permitted, preserve the branch or detached HEAD and worktree, report the head SHA, and hand off.
 
 ## Step 1: Verify Tests
 
@@ -65,9 +63,9 @@ ambiguity: integrating into the wrong base is expensive to undo.
 Follow the requested outcome already present in the task or repository
 instructions:
 
-- For an authorized merge of a specific PR, follow the repository’s PR merge procedure; do not use the local integration steps below.
+- **PR merge only:** For a request to merge a specific PR, verify someone else made the last commit and you did not approve the PR (approve or merge, never both). If either check fails or is uncertain, hand off the head SHA. Follow the repo's PR procedure. Without one, use its permitted forge merge method with the reviewed head SHA as a merge precondition; if you cannot enforce that match, hand off. Never use `--admin`, merge locally or push directly to the default branch as a substitute.
 - If the request includes opening a PR, push and create the PR.
-- If local integration is both requested and permitted, use Option 1.
+- If local integration itself is requested and permitted, use Option 1. The PR role checks do not apply to a local merge.
 - If no integration side effect was requested, keep the branch and worktree,
   report their state, and stop. Do not turn completion into a permission menu.
 
