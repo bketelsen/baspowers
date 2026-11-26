@@ -1,10 +1,8 @@
 # Claude Code Tool Notes
 
-Claude Code is the reference harness: skills speak its vocabulary
-(`Agent` for a subagent dispatch, todos, `Skill`). These notes cover the
-one place Claude Code can run a plan cheaper than the skills' default
-shape. It is opt-in by your human partner and changes nothing the skills
-require.
+Native Claude Code only. Nothing here is a requirement: the skills work without
+it, and on another host this file is evidence about Claude Code, not an
+instruction.
 
 ## Cheaper orchestration for subagent-driven development
 
@@ -26,4 +24,6 @@ verbatim — that list is how the decisions reach your human partner, and
 you relay it, not summarize it.
 
 Do this only for a whole plan. Nesting a single task's dispatch buys
-nothing and adds a seat.
+nothing and adds a seat. If the host refuses the extra spawn depth, dispatch
+one level, keep the same skill and ledger, and say the orchestration is not
+nested.

@@ -1,6 +1,6 @@
 # Session diagnosis: <session-id>
 
-Report path: ~/.baspowers/diagnosing-baspowers/<session-id>/report.md
+Report path: ~/.baspowers/diagnosing-baspowers/<session-id>/report.md, or the writable report path you named when the default was unavailable
 Written: <ISO timestamp>
 
 ## 1. Problem statement (REQUIRED)
