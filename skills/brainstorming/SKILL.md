@@ -5,7 +5,7 @@ description: "You MUST use this before any creative work - creating features, bu
 
 # Brainstorming Ideas Into Designs
 
-Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+Help turn ideas into fully formed designs through natural collaborative dialogue.
 
 Start by classifying how much process the request needs, then work
 through your path: understand the context, refine the idea, choose a
@@ -94,7 +94,7 @@ gate. Continue unless one of the authority boundaries above applies.
 | Thought | Reality |
 |---------|---------|
 | "This is too simple to need a design" | Follow the selected path: a bounded change gets a short chat design; an architectural change gets a reviewed design and plan. Then proceed. |
-| "I'll call it bounded and skip the spec" | Reaching for a label to skip work IS the doubt — take the heavier path. |
+| "I'll call it bounded and skip the design" | Reaching for a label to skip work IS the doubt — take the heavier path. |
 | "I should ask whether this obvious reversible choice is okay" | Routine choices belong to the agent. Decide, state the decision, and proceed. |
 | "I understand this kind of app, so it's bounded" | Bounded measures the repo, not your familiarity. A new project has no existing flow — it is architectural. |
 | "The spike works, so I'll keep the code" | A spike's output is an answer. Keeping the code is a new request — classify it. |
@@ -180,7 +180,7 @@ is the whole process.
 
 - Check out the current project state first (files, docs, recent commits)
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
-- If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own design → plan → implementation cycle.
+- If the project is too large for a single design, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own design → plan → implementation cycle.
 - For appropriately-scoped projects, inspect available context first and ask only questions whose answers materially change the result
 - Prefer multiple choice questions when possible, but open-ended is fine too
 - Only one question per message - if a topic needs more exploration, break it into multiple questions
@@ -219,7 +219,7 @@ is the whole process.
 **Documentation:**
 
 - Use [Repository workflow](../using-baspowers/references/repository-workflow.md) to classify each part of the design. Follow the local procedure for the record that is needed; do not create one of every kind.
-- With no established layout, self-review the design in chat unless a durable record was requested. For read-only work, present it without writing files. No automatic design-only commit.
+- With no established layout, self-review the design in chat unless a durable record was requested. For read-only work, present it without writing files. For a durable record, establish the work branch and its worktree **before** writing. Keep planning and the first task in that worktree; commit the record there with the plan or first task, never on the default branch. Pass the worktree and record path to the next worker; do not start over from the default branch with the record left behind.
 
 **Design Self-Review:**
 Check the applicable template, index entry, links and decision status. Then review the design:
@@ -232,13 +232,9 @@ Check the applicable template, index entry, links and decision status. Then revi
 Fix any issues inline. No need to re-review — just fix and move on.
 
 **Design handoff:**
-After the design review passes, summarize the chosen design and proceed to
-planning. If review exposes a missing product decision that materially changes
-the result, ask one focused question; otherwise continue within the project’s approval rules.
+Summarize the reviewed design. If a missing product decision materially changes the result, ask one focused question. If project approval is required before planning, stop here until it is recorded.
 
-**Implementation:**
-
-- Follow the repository’s planning procedure, or use writing-plans if none is specified. Planning is the next step, not implementation; stop at the applicable approval gate.
+Hand off to the repository's planning procedure, or to writing-plans if none is specified. Pass the path to any durable record. When the design exists only in chat, pass its reviewed text and constraints for the planner to embed as the plan's **Spec** section; the plan then carries its own design, without an invented spec-file path. Planning is the next step, not implementation.
 
 ## Visual Companion
 
