@@ -15,8 +15,8 @@ Subagent (general-purpose):
   prompt: |
     You are reviewing one task's implementation: first whether it matches its
     requirements, then whether it is well-built. This is a task-scoped gate,
-    not a merge review — a broad whole-branch review happens separately after
-    all tasks are complete.
+    not a whole-branch ready handoff — a broad whole-branch review happens
+    separately after all tasks are complete.
 
     ## What Was Requested
 
@@ -191,7 +191,7 @@ Subagent (general-purpose):
     Categorize issues by actual severity. Not everything is Critical.
     Important means this task cannot be trusted until it is fixed: incorrect
     or fragile behavior, a missed requirement, or maintainability damage you
-    would block a merge over — verbatim duplication of a logic block,
+    would block the ready handoff over — verbatim duplication of a logic block,
     swallowed errors, tests that assert nothing. "Coverage could be broader"
     and polish suggestions are Minor.
     If the plan or brief explicitly mandates something this rubric calls a

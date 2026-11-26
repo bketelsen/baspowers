@@ -14,11 +14,12 @@ It started as a fork of [obra/superpowers](https://github.com/obra/superpowers) 
 1. **The agent decides.**
    Superpowers stops for your approval at each stage: the design, the spec, the plan, the execution mode, and the finish.
    Baspowers lets the agent make routine, reversible decisions itself, say what it decided, and keep going.
-   Brainstorming uses project conventions for design records. The writing-plans skill is unchanged; when the reviewed design exists only in chat, hand it to the planner to embed as the plan's Spec section.
+   Brainstorming uses project conventions for design records. Writing-plans separates repository-owned phase plans from task briefs for executors.
    It stops for information it cannot find, a real change of scope, or an irreversible or external action such as a merge or a push.
+   A merge is never the agent's action in any repository: it hands the reviewed head to a human, whether the repository is protected or not.
 2. **Ambiguity goes to a second model, not to you.**
    When a hard technical decision stays ambiguous after the agent has read the code, tests, and history, it asks the other model family for advice (Claude asks GPT-6 Astra, Codex asks Claude Opus 5.5), then decides.
-   The same second model also reviews pull requests before they are merged.
+   The same second model also reviews pull requests at their current head before they are handed off for a human to merge.
 3. **Cruft removed.**
    Integrations for harnesses I don't use (Cursor, Gemini, OpenCode, Pi, Hermes, and others), development leftovers, and duplicated docs are gone, and skills load once per task instead of before every reply.
 4. **No contradictions.**
@@ -46,13 +47,13 @@ Every upstream skill is renamed from superpowers to baspowers; that rename alone
 | Skill | What it does |
 |---|---|
 | `consulting-cross-model` | Ask another model about an ambiguous, costly decision |
-| `merging-when-approved` | Merge only after independent reviewers approve the exact head |
+| `merging-when-approved` | Review a pull request at its current head and report its approval status; the agent never merges |
 | `scoring-pull-requests` | Verdict-first scorecard: net production LOC, root cause or bandage, risk |
 | `stopping-runaway-prs` | Re-plan when reviews keep finding defects, fixes turn into bandages, or scope creeps; size alone is no reason to stop |
 | `reporting-status` | Open items only, with how far each got |
-| `triaging-pr-backlogs` | Close what is provably redundant, merge what passes review, report the rest |
+| `triaging-pr-backlogs` | Classify a backlog by reading it; post or close only when separately authorized; never merge |
 | `scanning-for-simplifications` | Cleanup scan of a large PR before it is ready, or an architecture scan that feeds parallel refactor PRs |
-| `orchestrating-pr-programs` | Run many sessions' PRs at once: launch, gate, merge one at a time, and fix follow-ups until none are left |
+| `orchestrating-pr-programs` | Run many sessions' PRs at once: launch, gate, hand each ready PR to the human for merge, and fix follow-ups until none are left |
 
 ### Modified from Superpowers (14)
 
@@ -60,16 +61,16 @@ Every upstream skill is renamed from superpowers to baspowers; that rename alone
 |---|---|---|---|
 | `using-baspowers` | Bootstrap: pick the skills that apply at the start of each task | Starts from canonical project instructions; loads skills once per task instead of before every response; agent decides routine, reversible work itself; adds a terse response style adapted from [caveman](https://github.com/JuliusBrussee/caveman), with a five-item list cap from [i-have-adhd](https://github.com/ayghri/i-have-adhd); adds minimal-change coding rules adapted from [ponytail](https://github.com/DietrichGebert/ponytail) | +136% (492 → 1162) |
 | `brainstorming` | Turn an idea into a checked design before building | Classifies design records by local convention and respects the project's approval gates; keeps v6.4.2, not the unreleased `dev` rebuild | -4% (2613 → 2521) |
-| `writing-plans` | Write a step-by-step implementation plan from a spec | Agent picks the execution mode instead of asking and records it in the plan | -3% (1639 → 1593) |
+| `writing-plans` | Write a repository-shaped implementation plan from a spec | Uses local phase outcomes, revision gates, and derived task briefs | -3% (1639 → 1593) |
 | `executing-plans` | Execute a plan yourself in this session, with one final review | Creates an isolated branch instead of asking for consent | 0% (3267 → 3274) |
 | `subagent-driven-development` | Execute a plan task by task with fresh subagents and reviews | Creates an isolated branch instead of asking for consent; controller rules on plan-mandated findings | +2% (4871 → 4980) |
 | `test-driven-development` | Write a failing test first, then the code | Agent decides the named exceptions instead of asking | +7% (1475 → 1583) |
 | `systematic-debugging` | Find the root cause before proposing a fix | Consults another model instead of asking for help, including after three failed fixes | +4% (1440 → 1499) |
-| `requesting-code-review` | Get a review before merging | Reviews the whole branch by default; reviewer ends with a `VERDICT:` line | +3% (424 → 438) |
+| `requesting-code-review` | Get a review before a ready handoff | Reviews the whole branch by default; reviewer ends with a `VERDICT:` line | +3% (424 → 438) |
 | `receiving-code-review` | Verify review feedback instead of blindly applying it | Investigates instead of asking; consults another model when feedback conflicts with a recorded decision | +6% (913 → 972) |
 | `dispatching-parallel-agents` | Run independent tasks in parallel subagents | Parallel editors in one checkout touch disjoint files and leave git state alone | +5% (865 → 905) |
 | `using-git-worktrees` | Isolate feature work in a git worktree | Rewritten; reuses a worktree only if it is fresh | -67% (1069 → 354) |
-| `finishing-a-development-branch` | Decide how to merge, PR, or clean up finished work | Follows the requested outcome instead of an options menu; creates a branch on detached HEAD; cleans up its own worktree after merge only on request; never switches your main checkout; preserves tracked documentation, including legacy specs and plans; checks integration authority before acting | +22% (1269 → 1554) |
+| `finishing-a-development-branch` | Decide how to prepare a finished branch for a human, or clean it up | Follows the requested outcome instead of an options menu; creates a branch on detached HEAD; never merges locally or through the forge, and hands the reviewed head over; cleans up its own worktree after the work lands only on request; never switches your main checkout; preserves tracked documentation, including legacy specs and plans | +22% (1269 → 1554) |
 | `writing-skills` | Create, edit, and test skills | Quick-reference and red-flag sections only when testing shows a need; guidance for trimming existing skills | +2% (3814 → 3884) |
 | `diagnosing-baspowers` | Diagnose from transcripts why a session went wrong | Was `diagnosing-superpowers`. Proposes skill changes instead of refusing to; GitHub issue step and scrubbed-bundle export removed | -26% (1065 → 785) |
 
@@ -118,7 +119,7 @@ How the upstream skills were changed, and the evidence behind each decision.
 | Why does Claude skip brainstorming on some feature requests? | Opus, fully specified vs vague vs larger requests | Fully specified small change: 0/8 (goes straight to TDD). Vague or larger: 8/8. | Left as is: it brainstorms when there is something to design |
 | Blanket trim of 13 skills for length | Wording-only rewrites, checked by an independent old-vs-new comparison | The text checks passed, but lists were folded into prose and comma-separated lines | Withdrawn before merging |
 | `stopping-runaway-prs`: decide instead of waiting for me, and stop treating size alone as a signal | A third review round on a PR whose defects all come from duplicated state, and a requested feature at 2.2× its estimate that both reviewers approved; no skill, old, new; Sonnet, Haiku | Kept working without me (patch loop / over-estimate feature): no skill 5/5 and 5/5 on Sonnet; old 0/10 and 1/10; new 10/10 and 10/10. The new version also audits and restructures instead of patching | Shipped the new version |
-| Remove `docs/baspowers/` specs and plans before merging | Throwaway repo whose branch committed a spec and a plan; "merge into main and push"; no skill, old, new `finishing-a-development-branch`; Sonnet, Haiku | Specs and plans gone from the pushed `main`: no skill 0/5, old 0/10, new 10/10 | Historical result; automatic removal is no longer the finish policy |
+| Remove `docs/baspowers/` specs and plans before merging | Throwaway repo whose branch committed a spec and a plan; "merge into main and push"; no skill, old, new `finishing-a-development-branch`; Sonnet, Haiku | Specs and plans gone from the pushed `main`: no skill 0/5, old 0/10, new 10/10 | Historical result; no agent merge or automatic removal is allowed now |
 | Three verification rules from my agent history: a push wrapper that hides a rejected push, a commit gate that dry runs never exercised, a test deadline above a production timer | Throwaway repo for the push; written scenarios for the other two; no skill, old, new `verification-before-completion`; Sonnet, Haiku | Already right with no skill: 10/10 for the push, 15/15 for the gate (two versions of the scenario), and 10/10 for the deadline | Dropped: agents already do this |
 
 ### Vendor guidance and research applied

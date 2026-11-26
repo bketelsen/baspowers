@@ -101,7 +101,7 @@ In review mode these rules replace When to Consult, Stopping Rules, and the advi
 - There is no word limit.
 - Use `timeout 900` instead of `timeout 300`.
 - Each push starts a new review round; review rounds don't count toward any consultation limit.
-- `BASPOWERS_CONSULT_DEPTH` still applies, and the verdict gates the merge but authorizes nothing else.
+- `BASPOWERS_CONSULT_DEPTH` still applies, and the verdict is advice about readiness that authorizes nothing, including a merge.
 
 ## Decide and Record
 

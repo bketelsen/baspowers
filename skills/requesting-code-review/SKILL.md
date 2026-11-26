@@ -1,6 +1,6 @@
 ---
 name: requesting-code-review
-description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+description: Use when completing tasks, implementing major features, or before a ready handoff to verify work meets requirements
 ---
 
 # Requesting Code Review
@@ -15,7 +15,7 @@ Dispatch a code reviewer subagent to catch issues before they cascade. The revie
 - After completing major feature
 - Before marking a PR ready, when the repository or the requested outcome
   requires an independent review
-- Before merging to the branch's target base
+- Before a ready handoff to the branch's target base
 
 **Optional but valuable:**
 - When stuck (fresh perspective)
@@ -32,7 +32,7 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 Use the PR's actual base. In a stacked PR, `git merge-base origin/main HEAD` includes the parent PR's commits and reviews the wrong change; on a short branch it can also resolve to the head itself. For a whole branch with no parent PR, resolve the fork point and check it against the branch's upstream and the repository's default branch before using it. Never default to `HEAD~1`: it silently drops every commit but the last.
 
-Record both SHAs in full, with the package path, in the handoff. A review covers the head it was given: any later commit, amend, rebase or push makes the findings stale. Re-review the new head before merge.
+Record both SHAs in full, with the package path, in the handoff. A review covers the head it was given: any later commit, amend, rebase or push makes the findings stale. Re-review the new head before the ready handoff.
 
 **2. Discover the repository's review inputs before dispatch:**
 
@@ -104,7 +104,7 @@ You: [Fix progress indicators]
 | "The blocking fix can be a follow-up PR" | If local rules require the correction on this PR, a follow-up cannot satisfy the gate. |
 | "The review approved the previous head" | An approval belongs to the SHA it saw. Any new commit invalidates it. |
 | "The label says low risk / Minor" | Labels and tiers are claims. Grade by the effect a person gets, not by the label. |
-| "The score says merge" | Scoring is advisory. Merge authority stays with the repository's merge gate. |
+| "The score says merge" | Scoring is advisory. Merge authority belongs to the human who owns the merge, never to the agent or a score. |
 
 ## Red Flags
 
