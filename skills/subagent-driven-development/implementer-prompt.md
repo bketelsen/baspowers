@@ -13,7 +13,24 @@ Subagent (general-purpose):
     ## Task Description
 
     Read your task brief first: [BRIEF_FILE]
-    It contains the full task text from the plan.
+    It is your requirements: the plan path and revision, your phase and task
+    IDs, the exact values, the files you may write, the given tests, the exact
+    test command and your stopping condition.
+
+    ## Scope and Stop
+
+    - Write only these files: [WRITABLE_FILES]. Everything else is read-only;
+      a needed change outside the list stops you and goes back to the plan
+      owner.
+    - These tests already exist and are read-only unless the brief lists one as
+      writable: [GIVEN_TESTS]. Make them pass; never edit, delete, skip or
+      loosen one to get green. A given test that is itself wrong is a finding —
+      report it.
+    - Run tests with the exact command the brief names, the project's own make
+      target, script or CI command. Do not substitute an ad-hoc invocation for
+      the project's runner.
+    - Stopping condition: [STOP]. Reaching it ends this task; report instead of
+      continuing into the rest of the phase.
 
     ## Context
 
@@ -32,9 +49,12 @@ Subagent (general-purpose):
     ## Your Job
 
     Once you're clear on requirements:
-    1. Implement exactly what the task specifies
-    2. Write tests (following TDD if task says to)
-    3. Verify implementation works
+    1. Implement exactly what the task specifies, inside the brief's writable
+       files
+    2. Watch the given tests fail, then write the code that passes them; write
+       new tests for new behavior (TDD, per the brief)
+    3. Verify implementation works with the brief's test command, and stop
+       where the brief says to stop
     4. Commit your work
     5. Self-review (see below)
     6. Report back
@@ -83,6 +103,8 @@ Subagent (general-purpose):
     - You feel uncertain about whether your approach is correct
     - The task involves restructuring existing code in ways the plan didn't anticipate
     - You've been reading file after file trying to understand the system without progress
+    - The work needs a file outside your writable list, an edited given test,
+      a change of scope, or a plan revision you were not given
 
     **How to escalate:** Report back with status BLOCKED or NEEDS_CONTEXT. Describe
     specifically what you're stuck on, what you've tried, and what kind of help you need.
@@ -129,11 +151,15 @@ Subagent (general-purpose):
 
     Write your full report to [REPORT_FILE]:
     - What you implemented (or what you attempted, if blocked)
-    - What you tested and test results
+    - What you tested and test results, with the command you ran
+    - **Given tests:** unmodified, plus any test the brief made writable and
+      what changed in it
+    - **Phase Done when** (when this is the phase's last task): the outcome you
+      observed and the output that shows it — not a claim that tests pass
+    - Files changed, and confirmation that each is on the brief's writable list
     - **TDD Evidence** (if TDD was required for this task):
       - RED: command run, relevant failing output before implementation, and why the failure was expected
       - GREEN: command run and relevant passing output after implementation
-    - Files changed
     - Self-review findings (if any)
     - Any issues or concerns
 

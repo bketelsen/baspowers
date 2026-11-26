@@ -48,6 +48,23 @@ Write code before the test? Delete it. Start over.
 
 Implement fresh from tests. Period.
 
+## Given Tests and Scope
+
+A task may arrive with tests that already exist. They are its acceptance
+criteria, and they are read-only unless the task expressly makes one writable:
+
+- Watch each given test fail for the reason the brief predicts, then make
+  production code pass it. Never edit, delete, skip, or loosen a given test to
+  get green — a green run over a weakened test proves nothing.
+- A given test that is itself wrong is a finding: stop and report it. Changing
+  it needs the plan owner's approval, which is not yours to grant.
+- New tests you write are yours to shape, inside the task's writable files.
+- Write only the files the task lists as writable. A needed change outside the
+  list stops you and goes back to the plan owner; it is not a local edit.
+
+Run tests through the project's own runner — its make target, script or CI
+command — before any ad-hoc invocation. That is what a person or CI runs.
+
 ## Red-Green-Refactor
 
 ```dot
@@ -190,7 +207,9 @@ Confirm:
 green run of the test you wrote is not a green suite. Before you call
 the change done, run the project's test command (bare `pytest`,
 `npm test`, `cargo test` — whatever the repo uses) even when your task
-named only one test file. A scope statement in your task bounds the
+named only one test file. When the project defines a make target, script
+or CI command for that suite, that is the command; a bare runner
+invocation is not it. A scope statement in your task bounds the
 deliverable, not your verification. Any failure that run shows —
 including one you didn't cause — goes in your report by name; a red
 test you watched scroll past and didn't mention is a report falsified
@@ -238,6 +257,9 @@ When writing or changing any test, read [writing-good-tests.md](writing-good-tes
 | "TDD will slow me down" | TDD IS the pragmatic path: catches bugs before commit, prevents regressions, lets you refactor without fear. "Pragmatic" shortcuts mean debugging in production — slower, not faster. |
 | "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
 | "Existing code has no tests" | You're improving it. Add tests for existing code. |
+| "The given test is wrong, I'll adjust it" | That test is the acceptance criterion. Report it; the plan owner decides. |
+| "Tests pass, so the phase is complete" | Green names behaviors, not the phase's `Done when`. Observe the outcome. |
+| "One file outside the list, no one will notice" | Scope is the brief's writable list. Stop and report; the plan owner expands it. |
 
 ## Red Flags - STOP and Start Over
 
@@ -306,8 +328,20 @@ Before marking work complete:
 - [ ] Output pristine (no errors, warnings)
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
+- [ ] Given tests are byte-identical unless the task marked one writable
+- [ ] Nothing written outside the task's writable files
+- [ ] The project's own runner was the command, not only an ad-hoc invocation
 
-Can't check all boxes? You skipped TDD. Start over.
+Can't check a TDD box? You skipped TDD. Start over. A scope box you cannot
+check means the task is not complete: stop and report it.
+
+## Green Is Not Completion
+
+A green suite shows the behaviors the tests name. It does not show that the
+task's stopping condition is met, that the phase's `Done when` outcome was
+seen, or that nothing outside the writable files changed. Check those
+explicitly and quote the evidence; a phase closes when its observable outcome
+is, not when the suite turns green.
 
 ## When Stuck
 

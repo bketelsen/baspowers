@@ -18,8 +18,8 @@ brief is the spec, the ledger is your memory, TDD is the per-task gate, and
 the final reviewer is the second pair of eyes.
 
 **Core principle:** The plan already did the thinking. Execute it exactly,
-prove each step with a test you watched fail and then pass, and leave a
-record that survives your own forgetting.
+prove each step with a test you watched fail and then pass, and leave notes
+that survive your own forgetting.
 
 **Narration:** between tool calls, narrate at most one short line — the
 ledger and the tool results carry the record.
@@ -36,17 +36,35 @@ as `Ruling: <what you decided> — <why> — <what it costs if wrong>`, and keep
 going. Deviating from the plan without a ledgered ruling is a decision made
 in secret.
 
+Two limits keep a ruling from becoming a decision made in secret. The ledger
+is memory, not a record — it is deleted when the plan finishes — so every
+ruling also reaches your human partner in the final message, and a decision
+the repository requires goes through its own decision-record procedure. If none applies, report the rationale without inventing an ADR.
+And a ruling that changes the plan's scope or its approved revision is not
+yours: report it, and the planner or approver decides. Never edit an approved
+plan into a shape its approval did not cover.
+
 Four things stop you, and only these: an irreversible or destructive
 operation; a security-sensitive action; a side effect outside this worktree
 that norms say you ask about first (a merge, a push to a shared branch, a
-publish); and a plan so broken that every path forward is a guess even after baspowers:consulting-cross-model. For those, stop and ask.
+publish); and a plan so broken that every path forward is a guess even after
+baspowers:consulting-cross-model. For those, stop and ask. A change of scope
+or of the plan revision also leaves this skill: it returns to the planner or
+approver rather than becoming a ruling.
+
+## Repository Executor First
+
+Read the canonical repository workflow before selecting this skill. If the
+repository supplies a task-card runner or another required executor, use its
+exact command and respect its writable paths. Do not route the card through
+Baspowers helpers or dispatch merely because this skill is available.
 
 ## When to Use
 
 - You have a plan from baspowers:writing-plans and Native (inline)
   execution was chosen in its Execution Selection.
 - Your harness has no subagent tool (see the per-platform references in
-  `../using-baspowers/references/`). Never fabricate a dispatch; run
+  the references listed by the `using-baspowers` skill loader). Never fabricate a dispatch; run
   the plan here.
 - Tasks are mostly independent — the same precondition as
   baspowers:subagent-driven-development.
@@ -115,7 +133,7 @@ Conversation memory does not survive compaction. An inline executor that
 loses its place re-implements tasks whose commits already exist — the same
 failure as a controller re-dispatching them, paid for in your own context.
 Track progress in a ledger file, not only in todos. Harness todos are a
-live view; the ledger is the record.
+live view; the ledger is what survives compaction.
 
 The workspace and ledger are shared with baspowers:subagent-driven-development
 — same directory, same format — so a plan can change executors mid-flight
@@ -139,19 +157,23 @@ and the new one resumes from the same ledger.
 - `git clean -fdx` will destroy the workspace (it's git-ignored scratch);
   if that happens, recover from `git log`.
 
-Read the plan once, note its context and Global Constraints, and create a
-todo per task. If the plan names a Spec, read that too: the spec is the
-authority the plan argues from, and conflicts inside the plan resolve
-against it. A plan with no reachable spec gets a ledger note saying so —
-rulings made without one are provisional.
+Use the plan path and exact revision named by the handoff or required
+approval, not the last commit that touched the path. For a tracked plan,
+compare the working file byte-for-byte with `git show <approved-commit>:<repo-relative-path>`
+(including staged or unstaged changes); for scratch compare the recorded
+content digest. If required approval is missing or the selected plan differs,
+return to the planner and approver before Task 1. Execution itself needs
+request or repository authorization even without a separate approval gate.
+Read the named requirements, shared constraints and phase outcomes, and
+create todos for the selected tasks. Use the derived brief fields from
+`writing-plans`; read any referenced requirements at the pinned revision.
 
 **REQUIRED SUB-SKILL:** load baspowers:test-driven-development now,
 before Task 1. It governs every step of every task below; a plan whose
 steps already say "write the failing test first" does not exempt you
 from reading it.
 
-Before Task 1, scan the plan for conflicts between tasks. The plan's
-Interfaces blocks tell you where to look: for every task that consumes
+Before Task 1, scan the plan for conflicts between tasks. Use the consumed and produced interfaces in the briefs or linked plan evidence: for every task that consumes
 what an earlier task produces, one ledger row — the two tasks, what one
 produces against what the other consumes, and what you found. Tasks that
 share nothing get no row; a plan whose tasks share nothing gets the single
@@ -169,7 +191,13 @@ in the workspace and read its tail; read a brief, not the whole plan.
 ### 1. Take the task
 
 - Run this skill's `bash scripts/task-start PLAN_FILE N`. It prints the brief
-  path and BASE (the commit the task's range is cut from) in one call.
+  path and BASE (the commit the task's range is cut from) in one call. The
+  script reads `### Task N` headings; a phase plan that numbers its units
+  differently (`P2-T1`) gets the same brief written by hand from that
+  phase/task section. Either way the brief carries the plan path and revision,
+  the phase and task IDs, the exact writable files, the given tests (read-only
+  unless the plan says otherwise), the exact test command and the stopping
+  condition. The brief contract matters; the extractor does not.
   Read the brief for every task, including ones you remember from setup:
   what you remember is a summary, the brief has the exact values,
   signatures, and test cases.
@@ -186,6 +214,12 @@ order under baspowers:test-driven-development, loaded at setup. A test
 step's code is written first and run first. Watching it fail is a step,
 not a formality — a test that passes before the implementation exists is
 a finding about the test.
+
+A given test runs as it stands. Never edit, delete, skip or loosen one to
+reach green; a given test that is itself wrong is a plan change — report it
+and let the planner or approver correct it. Write only the files the brief
+lists as writable; a needed change outside that list goes back to the plan
+owner, not into a quiet edit.
 
 Every step that runs a command has an `Expected:` line. Run the command,
 read its output, and compare. Three outcomes:
@@ -208,11 +242,18 @@ is fine; BASE is what the review range is cut from, never `HEAD~1`.
 Before a task's ledger line, all of the following are true, with evidence
 in this session — not inferred from the diff looking right:
 
-- Every test the brief names exists and ran in this task, and you read
-  the output.
+- Every test the brief names exists and ran in this task through the exact
+  command the brief names — the project's own make target, script or CI
+  command first — and you read the output.
+- Every given test the brief lists still exists unmodified unless the brief
+  marked it writable, and nothing was written outside the brief's writable
+  files.
 - The final test run for the task passed — `task-done` is that run, and
   it writes the command and result into the ledger line.
 - Every `Expected:` line in the brief was compared against real output.
+- The stopping condition is met: nothing past it was attempted.
+- For the phase's last task, the phase's `Done when` outcome was observed and
+  its output quoted. Green tests do not close a phase.
 - Every deviation from the brief has a `Ruling:` line in the ledger.
 
 **REQUIRED SUB-SKILL:** baspowers:verification-before-completion governs
@@ -239,9 +280,8 @@ Run `bash ../subagent-driven-development/scripts/review-package PLAN_FILE MERGE_
 **With a subagent tool:** dispatch the reviewer on the most capable
 available model — the whole-branch review is a judgment task — using
 baspowers:requesting-code-review's
-[code-reviewer.md](../requesting-code-review/code-reviewer.md), with the
-package path as `[DIFF_FILE]`, the plan and spec paths, the plan's Review Focus section
-verbatim if it has one (the input classes and failure modes the plan
+`code-reviewer.md` reference (load from `requesting-code-review` via the host loader, or read the sibling skill file in a checkout), with the
+package path as `[DIFF_FILE]`, the plan and spec paths, the concrete review-focus cases from the plan or handoff, if any (the input classes and failure modes the plan
 singled out as most likely to bite — the reviewer checks each deliberately), and a
 pointer to the ledger's `Ruling:` lines so it can weigh the calls you
 made. Specify the model
@@ -294,7 +334,9 @@ Before you delete anything, collect every ledger line containing
 made them, each with what it costs if wrong, and every `minor (deferred)`
 line under "Deferred minors". Both lists are exhaustive. Your final
 message is the only place the decisions you took on your human partner's
-behalf — and the findings you chose not to act on — reach them.
+behalf — and the findings you chose not to act on — reach them; the ledger
+dies with this workspace, so a ruling missing here no longer exists anywhere.
+Link any decision record created under repository rules.
 
 When the final review is clean and its fixes are committed, delete this
 plan's workspace directory — the git history is the record now. Sibling
@@ -325,8 +367,8 @@ Use baspowers:finishing-a-development-branch.
 You: I'm using the executing-plans skill to implement this plan inline.
 
 [Setup: worktree verified]
-[Read plan once: docs/baspowers/plans/feature-plan.md; spec read]
-[Resolve workspace: sdd-workspace docs/baspowers/plans/feature-plan.md — no ledger inside, fresh start]
+[Read plan once: <plan path> @ <plan revision>; approval matches; spec read]
+[Resolve workspace: sdd-workspace <plan path> — no ledger inside, fresh start]
 [Pre-flight scan: 2 shared-interface rows, 4 self-consistency rows, clean; written to ledger]
 [Create todos for all tasks]
 
@@ -353,7 +395,7 @@ Task 2: Recovery modes
 
 ...
 
-[After all tasks: review-package plan MERGE_BASE HEAD; dispatch code-reviewer, most capable model]
+[After all tasks, each phase's Done when observed and quoted: review-package plan MERGE_BASE HEAD; dispatch code-reviewer, most capable model]
 Reviewer: One Important finding — progress reporting interval hardcoded. Two Minor.
 [Re-grade: Important stands; minors → ledger as deferred]
 [Fix pass: test_progress_interval_configurable RED → extract PROGRESS_INTERVAL → GREEN; suite 12/12; commit]
