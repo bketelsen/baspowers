@@ -16,6 +16,11 @@ Code review requires technical evaluation, not emotional performance.
 ```
 WHEN receiving code review feedback:
 
+0. CONFIRM: the review names the base and head it saw. If HEAD has moved,
+   the findings describe a tree that is no longer here — re-request review
+   of the current head before applying them. The exception is a finding
+   that is still true of the current tree and the fix is identical; say
+   so and re-test it here.
 1. READ: Complete feedback without reacting
 2. UNDERSTAND: Restate requirement in own words (or ask)
 3. VERIFY: Check against codebase reality
@@ -23,6 +28,35 @@ WHEN receiving code review feedback:
 5. RESPOND: Technical acknowledgment or reasoned pushback
 6. IMPLEMENT: One item at a time, test each
 ```
+
+## Exact Requirements vs Potential Defects
+
+Sort every item before you implement anything:
+
+- **Exact requirement:** the reviewer quotes a spec, plan, brief, or
+  repository rule the change misses. Verify the quote and its source. If
+  both are real, it gates — you fix it or record a ruling that conflicts
+  with the authority and return it to the human partner.
+- **Potential defect:** the reviewer describes behavior that would hurt a
+  person using the software. Reproduce it, or ask for the failing
+  scenario or test. A preference, a taste rule, or a claim with no
+  trigger is not a defect; investigate the cheapest reliable way and
+  record what stays unverified.
+
+Do not let the severity label decide which is which. A label is the
+reviewer's summary, not evidence, and a PR label or risk tier is not a
+classification the code earned. Re-grade by the effect a person gets for
+this repository. Do not assume a language, test suite, or
+copy/organization rule; use the command and the rule the repository names,
+and ask when it names none.
+
+**Repository correction rules:** If the repository requires same-PR fixes,
+verify the correction and required evidence there before calling it addressed.
+Follow local history-retention rules, including any expressly permitted empty
+promotion. Record both heads and verify identical trees for such a promotion.
+Otherwise do not invent a same-PR or no-rewrite rule. A verdict never transfers
+to a different head; obtain any required fresh verdict.
+
 
 ## Forbidden Responses
 
@@ -177,6 +211,10 @@ State the correction factually and move on.
 | Avoiding pushback | Technical correctness > comfort |
 | Partial implementation | Clarify all items first |
 | Can't verify, proceed anyway | Investigate the cheapest reliable way; record what stays unverified |
+| Applying findings to a moved head | Confirm the review's head first; stale findings describe another tree |
+| Treating a label or PR risk tier as the severity | Re-grade by the effect, from the repository's own rules |
+| Opening a follow-up PR for a blocking fix | If local rules require a same-PR correction, the follow-up does not satisfy the gate |
+| Rewriting earlier correction commits to tidy the branch | Follow repository history-retention rules; a rewritten head does not inherit review |
 
 ## Real Examples
 

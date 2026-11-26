@@ -104,7 +104,7 @@ digraph process {
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer (../requesting-code-review/code-reviewer.md)" [shape=box];
     "Final findings? ONE fix dispatch, one scoped re-review, adjudicate residuals" [shape=box];
-    "Final review clean: delete this plan's workspace" [shape=box];
+    "Preserve review evidence; clean only disposable scratch" [shape=box];
     "Use baspowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Setup: worktree, ledger check, read plan, pre-flight review" -> "Dispatch implementer subagent (./implementer-prompt.md)";
@@ -133,8 +133,8 @@ digraph process {
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer (../requesting-code-review/code-reviewer.md)" [label="no"];
     "Dispatch final code reviewer (../requesting-code-review/code-reviewer.md)" -> "Final findings? ONE fix dispatch, one scoped re-review, adjudicate residuals";
-    "Final findings? ONE fix dispatch, one scoped re-review, adjudicate residuals" -> "Final review clean: delete this plan's workspace";
-    "Final review clean: delete this plan's workspace" -> "Use baspowers:finishing-a-development-branch";
+    "Final findings? ONE fix dispatch, one scoped re-review, adjudicate residuals" -> "Preserve review evidence; clean only disposable scratch";
+    "Preserve review evidence; clean only disposable scratch" -> "Use baspowers:finishing-a-development-branch";
 }
 ```
 
@@ -220,9 +220,11 @@ The final whole-branch review is one of these — dispatch it on the most
 capable available model, not the session default.
 
 **Review tasks**: choose the model with the same judgment, scaled to the
-diff's size, complexity, and risk. A small mechanical diff does not need the
-most capable model; a subtle concurrency change does. Scoped re-reviews of
-small fix diffs take the mid tier, the reviewer floor set below.
+diff's size, complexity, and risk — judged from the diff, not from a PR
+label, a file extension, or a risk tier the repository has not defined. A
+small mechanical diff does not need the most capable model; a subtle
+concurrency change does. Scoped re-reviews of small fix diffs take the mid
+tier, the reviewer floor set below.
 
 **Fix-loop escalation (rounds 4-5)**: use a model at least one tier above
 the implementer that got stuck.
@@ -346,7 +348,7 @@ Template: [implementer-prompt.md](implementer-prompt.md)
 
 Implementer subagents report one of four statuses. Handle each appropriately:
 
-**DONE:** Generate the review package (`bash scripts/review-package PLAN_FILE BASE HEAD [--brief BRIEF --task ID]`, from this skill's directory — it prints the unique file path it wrote; BASE is the commit you recorded before dispatching the implementer — never `HEAD~1`, which silently drops all but the last commit of a multi-commit task), then dispatch the task reviewer with the printed path. Pass `--brief BRIEF --task ID` when the task used an explicit brief so the range is bound to the same plan revision and the caller's independently expected task. Without both flags the package is labelled whole-branch (range only).
+**DONE:** Generate the review package (`bash scripts/review-package PLAN_FILE BASE HEAD [--brief BRIEF --task ID]`, from this skill's directory — it prints the unique file path it wrote; BASE is the commit you recorded before dispatching the implementer — never `HEAD~1`, which silently drops all but the last commit of a multi-commit task), then dispatch the task reviewer with the printed path. Pass `--brief BRIEF --task ID` when the task used an explicit brief so the range is bound to the same plan revision and the caller's independently expected task. Without both flags the package is labelled whole-branch (range only). Record BASE, HEAD and the package path in the ledger; keep the verdict and correction evidence where the repository prescribes it.
 
 **DONE_WITH_CONCERNS:** The implementer completed the work but flagged doubts. Read the concerns before proceeding. If the concerns are about correctness or scope, address them before review. If they're observations (e.g., "this file is getting large"), note them and proceed to review.
 
@@ -385,7 +387,11 @@ needed.
   file, the report file, and the review package — plus the global
   constraints that bind the task, the brief's writable-file list and its
   given-test list. That is what lets it flag a write outside scope or a
-  given test edited to get green.
+  given test edited to get green. It also gets one more path group: the
+  repository's index/template/rubric, PR template, applicable gates and
+  environment, and its review-evidence path. Never hand it a guessed
+  standard — no assumed label, risk tier, language, test suite, or
+  copy/organization rule.
 - The global-constraints block you hand the reviewer is its attention
   lens. Copy the binding requirements verbatim from the plan's Global
   Constraints section or the spec: exact values, exact formats, and the
@@ -409,6 +415,13 @@ review, but you must resolve each one yourself before marking the task
 complete: you hold the plan and cross-task context the reviewer
 lacks. If you confirm an item is a real gap, treat it as a failed spec
 review — it enters the fix loop with the other findings.
+
+The review's other output is evidence too: it must name the head it
+reviewed and the risk paths it derived from the diff. A finding labeled
+`requirement` gates when its cited source is real. A `potential defect`
+needs the failing scenario the reviewer named; reproduce it before you
+accept or reject it. Neither a severity label nor a PR label decides —
+you re-grade by effect.
 
 Template: [task-reviewer-prompt.md](task-reviewer-prompt.md)
 
@@ -454,6 +467,8 @@ output; dispatch the re-review once all three are present. Name the
 covering test files in the fix message — a one-line fix does not need the
 whole suite.
 
+When the repository requires same-PR corrections or preserves correction history, apply its guard and record the evidence there. A rewritten head never inherits review.
+
 **The re-review is scoped.** Run `bash scripts/review-package PLAN_FILE FIX_BASE HEAD [--brief BRIEF --task ID]`
 where FIX_BASE is the head the previous review saw, and dispatch
 [re-review-prompt.md](re-review-prompt.md) with the findings list, the
@@ -495,9 +510,15 @@ When the review comes back clean — or every open finding is parked with a
 ruling at the cap — append the completion line to the ledger in the same
 message as your other bookkeeping:
 
-- `Task <N>: complete (commits <base7>..<head7>, review clean)`
-- `Task <N>: complete (commits <base7>..<head7>, <K> parked)` after a
+- `Task <N>: complete (commits <base7>..<head7>, review clean at <head7>)`
+- `Task <N>: complete (commits <base7>..<head7>, <K> parked at <head7>)` after a
   tripped breaker
+
+The review must cover the current head. If the last fix round changed the
+head, the clean re-review of that head is the completion evidence; a clean
+review of an earlier head plus green tests is not. Missing review or
+correction evidence is a reason not to complete, no matter how green the
+suite is.
 
 When the task is its phase's last, the phase also needs its `Done when`
 outcome observed, with the output quoted in the ledger
@@ -512,17 +533,24 @@ parked-with-ruling at the cap.
 
 The final whole-branch review gets a package too: run
 `bash scripts/review-package PLAN_FILE MERGE_BASE HEAD` (MERGE_BASE = the commit the
-branch started from, e.g. `git merge-base main HEAD`) and include the
+branch actually started from, verified against the branch's upstream and the
+repository's default branch — not an assumed `main`; in a stacked branch it
+is the parent PR's head, not `origin/main`) and include the
 printed path in the final review dispatch, so the final reviewer reads
-one file instead of re-deriving the branch diff with git commands. Dispatch
+one file instead of re-deriving the branch diff with git commands. Record
+the full base and head, keep the package in this plan's workspace (the
+helper refuses to overwrite a tracked file), and publish the evidence
+record — verdict, SHAs, package path — where the repository prescribes it.
+Dispatch
 on the most capable available model (see Model Selection), using
 baspowers:requesting-code-review's
 `code-reviewer.md` reference (load from `requesting-code-review` via the host loader, or read the sibling skill file in a checkout), with the
-package path as `[DIFF_FILE]`, the plan and spec paths, and the plan's Review
+package path as `[DIFF_FILE]`, the plan and spec paths, the repository's index, template, rubric, gates and environment, and the Review
 focus cases from the plan or handoff, if any, and the plan's phase `Done when` lines so
 it can check each phase's outcome against evidence. Point it at the ledger's
 deferred-minor and parked lines so it can triage which must be fixed before
-merge. Rule on
+merge. Do not hand it a guessed standard: no assumed label, risk tier,
+language, test suite, or copy/organization rule. Rule on
 every line of its "Declined to judge" list and ledger each as
 `Final: Ruling: <behavior set aside> — <decision and why> — <cost if wrong>`.
 
@@ -532,7 +560,14 @@ Per-finding fixers each rebuild context and re-run suites; a real
 session's final-review fix wave cost more than all its tasks combined.
 Then run exactly one scoped re-review of the fix wave
 (`bash scripts/review-package PLAN_FILE FIX_BASE HEAD` over the fix range,
-[re-review-prompt.md](re-review-prompt.md)).
+[re-review-prompt.md](re-review-prompt.md)). The re-review must name the
+new head; that head, not the one before the fix wave, is what the branch
+hands off. If the repository requires same-PR corrections, keep the fix
+and its evidence on that PR. Follow the repository's history-retention
+rules; for an expressly permitted empty promotion, record both heads and
+verify the trees match. A branch
+whose tests are green but whose current head has no review or correction
+evidence is unreviewed, not ready.
 Adjudicate any residual findings as in the task loop's breaker: park with
 rulings, or rule on the load-bearing ones and ledger what you decided. Only
 the four classes above stop you here; a change of scope or of the approved
@@ -553,10 +588,9 @@ whatever you got wrong. A ruling that dies with the workspace was a decision
 made in secret. Also list every `minor (deferred)` line under "Deferred
 minors", so deferred findings reach them too. Link any decision record created under repository rules.
 
-When the final whole-branch review is clean and its fixes are committed,
-delete this plan's workspace (`rm -rf <workspace>`) — the git history is
-the record now. Sibling directories belong to other plans; leave them
-alone.
+Preserve this workspace if it holds the only copy of verdicts, diffs, or
+correction evidence. Clean only authorized disposable scratch after checking
+that the required evidence remains accessible outside it.
 
 Use baspowers:finishing-a-development-branch.
 
@@ -573,6 +607,11 @@ Use baspowers:finishing-a-development-branch.
 | "Reviews slow the loop down" | The loop without reviews is just unverified churn. Reviews are the loop's brakes and steering. |
 | "Ledger bookkeeping is overhead" | The ledger is what survives compaction. Controllers without one have re-dispatched entire completed task sequences. |
 | "Tests are green, so the phase is done" | Green names behaviors. A phase closes on its observed `Done when`. |
+| "The task reviewed clean, so the branch is ready" | The task's verdict covers its head. A later fix or commit needs its own review before handoff. |
+| "Docs-only, so the task or branch skips review" | The repository's rules decide what docs require. A file extension is not a risk tier. |
+| "The blocking fix can go in a follow-up PR" | If the repository requires same-PR correction, keep the fix and its evidence there. |
+| "Rebase the fixes into the reviewed commits to keep it tidy" | Follow repository history-retention rules. A rewritten head does not inherit review; refresh required review and force-push only with repository permission and explicit human authorization. |
+| "The label says low risk, use the cheap reviewer" | Risk comes from the diff. Labels, PR templates and tiers are claims, not classifications. |
 | "The given test is wrong, I'll adjust it" | That test is the acceptance criterion. Report it; the planner or approver decides. |
 | "The implementer spawned its own reviewer — free extra assurance" | It's a duplicate seat reviewing the same diff; the task review is the gate. A worker-spawned reviewer is a defect to flag, not rigor. |
 
@@ -604,7 +643,7 @@ Implementer: [Later]
 Task reviewer: Spec ✅ - all requirements met, nothing extra.
   Strengths: Good test coverage, clean. Issues: None. Task quality: Approved.
 
-[Ledger: Task 1: complete (commits a1b2c3d..d4e5f6a, review clean)]
+[Ledger: Task 1: complete (commits a1b2c3d..d4e5f6a, review clean at d4e5f6a)]
 
 Task 2: Recovery modes
 
@@ -630,15 +669,16 @@ Re-reviewer: Missing progress reporting — ADDRESSED (src/recovery.js:41).
   Verdict: all findings addressed.
 
 [Ledger: Task 2: fix round 1/5 (2 addressed, 0 open; commits d4e5f6a..b7c8d9e)]
-[Ledger: Task 2: complete (commits d4e5f6a..b7c8d9e, review clean)]
+[Ledger: Task 2: complete (commits d4e5f6a..b7c8d9e, review clean at b7c8d9e)]
 
 ...
 
 [After all tasks]
 [Run review-package PLAN_FILE MERGE_BASE HEAD; dispatch final code-reviewer, most capable model]
-Final reviewer: All requirements met. Deferred minors triaged: none block merge.
+Final reviewer: Reviewed MERGE_BASE..b7c8d9e at b7c8d9e. All requirements met.
+Deferred minors triaged: none block merge.
 
-[Delete this plan's workspace — the record now lives in git]
+[Preserve workspace and evidence paths for handoff]
 
 Done! Using baspowers:finishing-a-development-branch.
 ```

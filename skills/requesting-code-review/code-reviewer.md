@@ -20,10 +20,34 @@ Subagent (general-purpose):
 
     [PLAN_OR_REQUIREMENTS]
 
+    ## Repository Inputs
+
+    [REPO_INPUTS]
+
+    Read the paths named there: the local index, template or rubric that
+    governs this change, the PR template, the gates and commands that apply
+    to the changed paths, and the environment they run in. Follow the
+    repository's rules, not a remembered standard. If a path is not named,
+    locate the canonical instruction file and its index in the checkout and
+    say which one you used; if a rule is absent, say which one is missing
+    and review without inventing one.
+
+    Do not assume a label, risk tier, language, test suite, or
+    copy/organization rule. A PR label or a file extension is not evidence
+    of risk; a repository with no stated suite has no default suite. Use
+    only what the repository or the requirements state, or mark the point
+    unverified.
+
     ## Git Range to Review
 
     **Base:** [BASE_SHA]
     **Head:** [HEAD_SHA]
+
+    These are the actual base and head, not a default branch and not
+    `HEAD~1`. Open the diff file and check that its header names this
+    range. If the package was made for different SHAs, stop and report
+    the mismatch: a review of another range is not a review of this work.
+    End your report with the head you actually reviewed.
 
     If a diff file is given ([DIFF_FILE]), read it instead of running these:
 
@@ -32,15 +56,40 @@ Subagent (general-purpose):
     git diff [BASE_SHA]..[HEAD_SHA]
     ```
 
+    ## Risk Paths From the Diff
+
+    Before the checklist, name the risk paths this diff creates: call sites
+    of a changed signature or contract, shared mutable state or lock order,
+    migrations and data shape, configuration and environment, public API,
+    and the repository's copy/organization rules where text changed. Derive
+    them from the diff, not from a label or a file extension. Check each one
+    once and name the risk and the check in your report. If the diff creates
+    none, say so.
+
+    ## Requirements Are Not Potential Defects
+
+    Report two kinds of finding, separately:
+
+    - **Exact requirement:** a rule quoted from the plan, spec, brief or
+      repository that the change misses. Name the source. This gates.
+    - **Potential defect:** behavior that would hurt a person using the
+      software. It needs a concrete failing scenario or test, not a
+      preference. Without one, report it under Recommendations as a
+      question, not as a graded finding.
+
+    A spec's silence is not permission for a defect, but it is also not a
+    requirement. Do not dress a preference as a requirement, and do not
+    downgrade a real defect because no rule names it.
+
     ## The spec is a vision document
 
     The spec says what the software must do. It does not enumerate every
     input, environment, or condition the software will meet. For behavior
     the spec is silent on, judge by what a reasonable person using this
-    software would expect: a reasonable person's expectation is a
-    requirement, and a spec's silence is not permission. Grade such
-    findings by their effect on that person, not by whether the spec
-    mentions the trigger.
+    software would expect. A spec's silence is not permission for that
+    behavior to break: report it as a potential defect with the failing
+    scenario, and grade it by its effect on that person, not by whether the
+    spec mentions the trigger.
 
     ## Declined to judge
 
@@ -86,7 +135,7 @@ Subagent (general-purpose):
     - Tests verify real behavior, not mocks?
     - Edge cases covered?
     - Integration tests where they matter?
-    - All tests passing?
+    - The suite the repository names passes, run at this head?
 
     **Production readiness:**
     - Migration strategy if schema changed?
@@ -97,8 +146,10 @@ Subagent (general-purpose):
     ## Calibration
 
     Categorize issues by actual severity. Not everything is Critical.
-    Acknowledge what was done well before listing issues — accurate praise
-    helps the implementer trust the rest of the feedback.
+    Do not inherit a severity from a label, a template, or the author's
+    framing; grade what a person using the software gets. Acknowledge what
+    was done well before listing issues — accurate praise helps the
+    implementer trust the rest of the feedback.
 
     If you find significant deviations from the plan, flag them specifically
     so the implementer can confirm whether the deviation was intentional.
@@ -106,6 +157,12 @@ Subagent (general-purpose):
     say so.
 
     ## Output Format
+
+    ### Reviewed Range
+    Base: [BASE_SHA]  Head: [HEAD_SHA] — state whether the diff file matched.
+
+    ### Risk Paths
+    [Each path derived from the diff, the risk, and the one check you ran.]
 
     ### Strengths
     [What's well done? Be specific.]
@@ -122,6 +179,8 @@ Subagent (general-purpose):
     [Code style, optimization opportunities, documentation polish]
 
     For each issue:
+    - Kind: `requirement` (with its source) or `potential defect` (with
+      its failing scenario)
     - File:line reference
     - What's wrong
     - Why it matters
@@ -135,6 +194,8 @@ Subagent (general-purpose):
     **Reasoning:** [1-2 sentence technical assessment]
 
     End with exactly one line: `VERDICT: APPROVE` or `VERDICT: CHANGES REQUIRED`.
+    This verdict covers the head named under Reviewed Range and nothing
+    later; a new commit or push invalidates it.
 
     ## Critical Rules
 
@@ -156,15 +217,22 @@ Subagent (general-purpose):
 **Placeholders:**
 - `[DESCRIPTION]` — brief summary of what was built
 - `[PLAN_OR_REQUIREMENTS]` — what it should do (plan file path, task text, or requirements)
-- `[BASE_SHA]` — starting commit
-- `[HEAD_SHA]` — ending commit
+- `[REPO_INPUTS]` — paths to the repository's index/template/rubric, PR template, applicable gates and environment, and the path where review evidence is kept
+- `[BASE_SHA]` — the actual starting commit
+- `[HEAD_SHA]` — the exact commit under review
 - `[DIFF_FILE]` — optional: path to a review package (e.g. from `review-package`); omit the sentence if there is none
 
-**Reviewer returns:** Strengths, Issues (Critical / Important / Minor), Recommendations, Assessment
+**Reviewer returns:** Reviewed range, Risk paths, Strengths, Issues (Critical / Important / Minor, each tagged requirement or potential defect), Recommendations, Assessment, and the head-scoped verdict
 
 ## Example Output
 
 ```
+### Reviewed Range
+Base: a7981ec  Head: 3df7661 — diff package matched.
+
+### Risk Paths
+- Changed public CLI flag parsing → checked every caller of parseArgs; one caller still passes the old flag.
+
 ### Strengths
 - Clean database schema with proper migrations (db.ts:15-42)
 - Comprehensive test coverage (18 tests, all edge cases)
@@ -174,17 +242,20 @@ Subagent (general-purpose):
 
 #### Important
 1. **Missing help text in CLI wrapper**
+   - Kind: requirement (repository CLI template: every flag has --help)
    - File: index-conversations:1-31
    - Issue: No --help flag, users won't discover --concurrency
    - Fix: Add --help case with usage examples
 
 2. **Date validation missing**
+   - Kind: potential defect (searching `2026-13-40` returns the whole index)
    - File: search.ts:25-27
    - Issue: Invalid dates silently return no results
    - Fix: Validate ISO format, throw error with example
 
 #### Minor
 1. **Progress indicators**
+   - Kind: potential defect (a long index run prints nothing for minutes)
    - File: indexer.ts:130
    - Issue: No "X of Y" counter for long operations
    - Impact: Users don't know how long to wait

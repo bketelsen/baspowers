@@ -77,6 +77,22 @@ Record revision identity outside the plan being identified: use its path and
 immutable commit, or an exact content digest for authorized scratch. Do not
 try to embed a commit SHA in the file that commit would contain.
 
+## Review Evidence
+
+The plan names how review will be evidenced, not just that it happens:
+
+- the actual base the branch starts from, and the rule that each review
+  records the head it saw, in full SHAs;
+- the path where the repository keeps review evidence, or the plan workspace
+  when it prescribes none;
+- the gates, commands and environment that apply to each phase's paths —
+  from the repository, never a guessed risk tier, language or suite;
+- the applicable correction location and history rules,
+  and that a new head invalidates an earlier verdict.
+
+A phase's completion evidence includes this record. Green tests alone do
+not complete a phase or make a branch ready.
+
 ## Review Focus
 
 Record up to five consequential, currently untested cases in the plan or
@@ -95,7 +111,9 @@ the equivalent local task card). It is not a second roadmap:
 - Exact writable paths. Given tests are read-only unless expressly writable.
 - Interfaces consumed and produced (including owning tasks), exact
   verification commands and expected results.
-- Stopping condition and evidence to return; stop if the approved scope changes.
+- Stopping condition and evidence to return — the exact command and output,
+  plus the review evidence path and head when the task ends in a review; stop
+  if the approved scope changes.
 
 ## What a Step Contains
 
@@ -155,6 +173,12 @@ phase.
 **9. Material decisions:** Does anything in the plan need a durable rationale
 under the project's rules? Follow the repository's decision-record procedure if it has one
 and link any resulting record; do not bury the decision in the plan or in execution notes.
+
+**10. Review evidence:** Does the plan name the actual base, how each
+review's head is recorded, the repository's evidence path, and the applicable
+gates and environment? Does it respect any same-PR correction rule and
+say that a new head invalidates an earlier verdict? A plan that leaves any of
+these to guesswork will produce a green branch nobody can show was reviewed.
 
 If you find issues, fix them inline. No need to re-review — just fix and move on. If you find a spec requirement with no task, add the task.
 
