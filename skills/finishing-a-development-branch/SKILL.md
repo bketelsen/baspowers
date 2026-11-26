@@ -11,7 +11,9 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
-Before running tests or changing Git state, check the requested outcome against the repository rules and your role. For read-only work, use only non-mutating checks, report what was verified and stop. If integration is forbidden (for example, a Frostyard agent asked to merge), preserve the branch or detached HEAD and worktree; report the head SHA and the required handoff. Do not substitute a local merge, push, or PR.
+Check the requested action against repository rules and your role before running tests or changing Git state. For read-only work, use only non-mutating checks, report the evidence and stop.
+
+A request to merge a specific PR authorizes only the permitted PR flow, not Option 1 or a direct push to the default branch. Approve or merge a given PR, never both. Before merging, verify someone else made the last commit. Never use `--admin`. If authority or separation of roles is missing or unclear, preserve the worktree and branch (or detached HEAD), report the head SHA and hand off.
 
 ## Step 1: Verify Tests
 
@@ -63,6 +65,7 @@ ambiguity: integrating into the wrong base is expensive to undo.
 Follow the requested outcome already present in the task or repository
 instructions:
 
+- For an authorized merge of a specific PR, follow the repository’s PR merge procedure; do not use the local integration steps below.
 - If the request includes opening a PR, push and create the PR.
 - If local integration is both requested and permitted, use Option 1.
 - If no integration side effect was requested, keep the branch and worktree,
