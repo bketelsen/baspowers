@@ -127,7 +127,8 @@ for each item on your path and complete them in order.
 5. **Select and present design** — in sections scaled to their complexity
 6. **Record the design** — classify it using the repository workflow below
 7. **Design self-review** — quick inline check for placeholders, contradictions, ambiguity, scope (see below)
-8. **Hand off to planning** — follow the project planning procedure, or writing-plans by default
+8. **Commit the reviewed record (durable records only)** — commit on the work branch before handoff
+9. **Hand off to planning** — follow the project planning procedure, or writing-plans by default
 
 ## Process Flow
 
@@ -145,6 +146,7 @@ digraph brainstorming {
     "Present design sections" [shape=box];
     "Record design by project convention" [shape=box];
     "Design self-review\n(fix inline)" [shape=box];
+    "Commit durable record on work branch" [shape=box];
     "Hand off to planning" [shape=doublecircle];
 
     "Classify: spike / bounded / architectural" -> "Present question + probe (2-3 sentences)" [label="spike"];
@@ -158,7 +160,9 @@ digraph brainstorming {
     "Propose 2-3 approaches" -> "Present design sections";
     "Present design sections" -> "Record design by project convention";
     "Record design by project convention" -> "Design self-review\n(fix inline)";
-    "Design self-review\n(fix inline)" -> "Hand off to planning";
+    "Design self-review\n(fix inline)" -> "Commit durable record on work branch" [label="durable record"];
+    "Commit durable record on work branch" -> "Hand off to planning";
+    "Design self-review\n(fix inline)" -> "Hand off to planning" [label="chat only"];
 }
 ```
 

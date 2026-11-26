@@ -59,7 +59,7 @@ Every upstream skill is renamed from superpowers to baspowers; that rename alone
 | Skill | What it does | What changed | `SKILL.md` size |
 |---|---|---|---|
 | `using-baspowers` | Bootstrap: pick the skills that apply at the start of each task | Starts from canonical project instructions; loads skills once per task instead of before every response; agent decides routine, reversible work itself; adds a terse response style adapted from [caveman](https://github.com/JuliusBrussee/caveman), with a five-item list cap from [i-have-adhd](https://github.com/ayghri/i-have-adhd); adds minimal-change coding rules adapted from [ponytail](https://github.com/DietrichGebert/ponytail) | +136% (492 → 1162) |
-| `brainstorming` | Turn an idea into a checked design before building | Classifies design records by local convention and respects the project's approval gates; keeps v6.4.2, not the unreleased `dev` rebuild | -5% (2613 → 2473) |
+| `brainstorming` | Turn an idea into a checked design before building | Classifies design records by local convention and respects the project's approval gates; keeps v6.4.2, not the unreleased `dev` rebuild | -4% (2613 → 2521) |
 | `writing-plans` | Write a step-by-step implementation plan from a spec | Agent picks the execution mode instead of asking and records it in the plan | -3% (1639 → 1593) |
 | `executing-plans` | Execute a plan yourself in this session, with one final review | Creates an isolated branch instead of asking for consent | 0% (3267 → 3274) |
 | `subagent-driven-development` | Execute a plan task by task with fresh subagents and reviews | Creates an isolated branch instead of asking for consent; controller rules on plan-mandated findings | +2% (4871 → 4980) |
