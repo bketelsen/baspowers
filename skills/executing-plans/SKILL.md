@@ -143,8 +143,12 @@ and the new one resumes from the same ledger.
   `bash ../subagent-driven-development/scripts/sdd-workspace PLAN_FILE` — it
   prints the plan's git-ignored directory
   (`<repo-root>/.baspowers/sdd/<plan-basename>/`), home to every
-  artifact for THIS plan: ledger, briefs, review packages. Another plan's
-  directory is never yours to read or write.
+  artifact for THIS plan: ledger, briefs, review packages. When the plan uses
+  explicit task briefs, add `--brief BRIEF` so the ledger and every helper
+  share the workspace keyed by the plan's canonical path and the brief's
+  exact revision; a new revision gets a fresh workspace, and a legacy
+  path-keyed workspace is left alone. Another plan's directory is never
+  yours to read or write.
 - Check for this plan's ledger at `<workspace>/progress.md`. If its first
   line names your plan file, tasks with a `Task <N>: complete` line are
   DONE — do not redo them; resume at the first task without one. Their
@@ -190,14 +194,24 @@ in the workspace and read its tail; read a brief, not the whole plan.
 
 ### 1. Take the task
 
-- Run this skill's `bash scripts/task-start PLAN_FILE N`. It prints the brief
-  path and BASE (the commit the task's range is cut from) in one call. The
-  script reads `### Task N` headings; a phase plan that numbers its units
-  differently (`P2-T1`) gets the same brief written by hand from that
-  phase/task section. Either way the brief carries the plan path and revision,
-  the phase and task IDs, the exact writable files, the given tests (read-only
-  unless the plan says otherwise), the exact test command and the stopping
-  condition. The brief contract matters; the extractor does not.
+- Run this skill's `bash scripts/task-start PLAN_FILE ID [--brief BRIEF]`.
+  It prints the brief path and BASE (the commit the task's range is cut from)
+  in one call. Without `--brief`, the script reads `### Task ID` headings,
+  keeps nested and non-Task headings in the task body (only the next Task
+  heading ends it), ignores Task headings inside fenced text, keeps the old
+  numeric delimiters (`Task 1.`, `Task 1—Name`, `Task 1)`), and handles a
+  plan with no final newline. For a phase plan, write the
+  selected task's brief in scratch with `Plan:`, `Revision:` and `Task:`
+  header lines, a blank line, then nonempty task content; pass it as
+  `--brief BRIEF`. The helper verifies the plan path, exact revision
+  (the committed plan's blob or commit object ID, full or unambiguous
+  abbreviated in SHA-1 or SHA-256, or a SHA-256 content digest for scratch),
+  task ID and bytes, and rejects a phase document before creating an empty
+  brief.
+  Either way the brief carries the plan path and revision, the phase and task
+  IDs, the exact writable files, the given tests (read-only unless the plan
+  says otherwise), the exact test command and the stopping condition. The
+  brief contract matters; the extractor does not.
   Read the brief for every task, including ones you remember from setup:
   what you remember is a summary, the brief has the exact values,
   signatures, and test cases.
@@ -261,10 +275,13 @@ the claim. If any item is missing, the task is not complete: finish it.
 
 ### 4. Complete the task
 
-Run this skill's `bash scripts/task-done PLAN_FILE N BASE -- <test command>`
+Run this skill's
+`bash scripts/task-done PLAN_FILE ID BASE [--brief BRIEF] -- <test command>`
 with the test command the brief names for the whole task. It runs the
 tests, keeps the full output in the workspace, prints the tail, and — only
-if they pass — appends the completion line to the ledger:
+if they pass — appends the completion line to the ledger. With `--brief`,
+it also re-verifies the plan/brief identity and that BASE still descends
+from HEAD before recording anything.
 
 `Task <N>: complete (commits <base7>..<head7>, tests: <command> → <result>)`
 
@@ -374,14 +391,14 @@ You: I'm using the executing-plans skill to implement this plan inline.
 
 Task 1: Hook installation script
 
-[task-start plan 1 → brief read; BASE a1b2c3d]
+[Write explicit Task 1 brief with Plan/Revision/Task header; task-start plan 1 --brief BRIEF → brief read; BASE a1b2c3d]
 [Step 1: write failing test — written]
 [Step 2: run it — FAIL: install_hook not defined. Matches Expected.]
 [Step 3: implement — written]
 [Step 4: run it — PASS 1/1. Matches Expected.]
 [Step 5: commit — d4e5f6a]
 [Contract: tests ran, output read, no deviations]
-[task-done plan 1 a1b2c3d -- npm test -- hooks → ledger: Task 1: complete (commits a1b2c3d..d4e5f6a, tests: npm test -- hooks → 1/1 pass)]
+[task-done plan 1 a1b2c3d --brief BRIEF -- npm test -- hooks → ledger: Task 1: complete (commits a1b2c3d..d4e5f6a, tests: npm test -- hooks → 1/1 pass)]
 
 Task 2: Recovery modes
 

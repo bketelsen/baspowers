@@ -18,6 +18,23 @@
 # legacy workspace adopts instead of detecting; acceptable, marker-less
 # workspaces age out as plans finish.
 #
+# An explicit task brief names an exact plan revision. Its workspace adds a
+# plan-revision marker and that revision to the directory name, so a new
+# revision never resumes a ledger or briefs from an older one. Legacy
+# workspaces (path only) keep their old rules and are not adopted by an
+# explicit run; an explicit run never adopts a legacy workspace either.
+#
+# A Git revision is resolved in the repository's own object format (SHA-1 or
+# SHA-256), so a full or unambiguous abbreviated object ID works in either.
+# A commit revision resolves to the plan's blob object, and identical
+# committed blobs therefore share one workspace: re-committing an unchanged
+# plan, or naming the blob, its commit, or an abbreviation of either, keeps
+# the same workspace. Two different plans with byte-identical committed
+# content produce that same blob OID, but they still get separate workspaces
+# because the slug and the plan-path marker name the plan. A scratch plan may
+# use a content digest instead: sha256:<digest>, or a bare 64-hex digest when
+# it is not also a Git object.
+#
 # The workspace lives in the working tree (not under .git/) because Claude Code
 # treats .git/ as a protected path and denies agent writes there — which blocks
 # an implementer subagent from writing its report file. A self-ignoring
@@ -27,41 +44,296 @@
 # Single source of truth for the workspace location, so task-brief and
 # review-package cannot drift to different directories.
 #
-# Usage: sdd-workspace PLAN_FILE
+# Usage: sdd-workspace PLAN_FILE [--brief FILE [--task ID]]
+#   --brief FILE  validate an explicit task brief against PLAN_FILE and key
+#                 the workspace by the plan's canonical path and its revision.
+#   --task ID     with --brief, require the brief's Task: line to equal ID.
 set -euo pipefail
 
-if [ $# -ne 1 ]; then
-  echo "usage: sdd-workspace PLAN_FILE" >&2
+die() {
+  echo "sdd-workspace: $*" >&2
   exit 2
+}
+
+usage() {
+  echo "usage: sdd-workspace PLAN_FILE [--brief FILE [--task ID]]" >&2
+  exit 2
+}
+
+plan=
+brief=
+task_id=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --brief)
+      [ $# -ge 2 ] || usage
+      brief=$2
+      shift 2
+      ;;
+    --task)
+      [ $# -ge 2 ] || usage
+      task_id=$2
+      shift 2
+      ;;
+    -*)
+      echo "unknown option: $1" >&2
+      usage
+      ;;
+    *)
+      [ -z "$plan" ] || usage
+      plan=$1
+      shift
+      ;;
+  esac
+done
+
+[ -n "$plan" ] || usage
+if [ -n "$task_id" ] && [ -z "$brief" ]; then
+  echo "--task requires --brief" >&2
+  usage
 fi
+[ -f "$plan" ] || die "no such plan file: $plan"
 
-plan=$1
-[ -f "$plan" ] || { echo "no such plan file: $plan" >&2; exit 2; }
+abs_file() {
+  local dir
+  dir=$(CDPATH='' cd -- "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1
+  printf '%s/%s\n' "$dir" "$(basename "$1")"
+}
 
-slug=$(basename "$plan" .md)
-[ -n "$slug" ] && [ "$slug" != "." ] && [ "$slug" != ".." ] \
-  || { echo "cannot derive a workspace name from: $plan" >&2; exit 2; }
+sha256() {
+  local input=$1
+  if command -v sha256sum >/dev/null 2>&1; then
+    if [ "$input" = - ]; then
+      sha256sum | awk '{print $1}'
+    else
+      sha256sum "$input" | awk '{print $1}'
+    fi
+  elif command -v shasum >/dev/null 2>&1; then
+    if [ "$input" = - ]; then
+      shasum -a 256 | awk '{print $1}'
+    else
+      shasum -a 256 "$input" | awk '{print $1}'
+    fi
+  else
+    if [ "$input" = - ]; then
+      openssl dgst -sha256 | awk '{print $NF}'
+    else
+      openssl dgst -sha256 "$input" | awk '{print $NF}'
+    fi
+  fi
+}
 
 # Physical path, spelled the way pwd -P spells the plan path below: on Git
 # Bash, rev-parse prints C:/Users/... while pwd prints /c/Users/..., and the
 # repo-relative marker check needs both in the same form.
 root=$(CDPATH='' cd -- "$(git rev-parse --show-toplevel)" && pwd -P)
-base="$root/.baspowers/sdd"
+
+# The repository decides how long an object ID is; never assume SHA-1.
+object_format=$(git rev-parse --show-object-format 2>/dev/null || printf 'sha1\n')
+case "$object_format" in
+  sha1) oid_len=40 ;;
+  sha256) oid_len=64 ;;
+  *) die "unsupported Git object format: $object_format" ;;
+esac
 
 # Normalize the plan path (physical directory, so relative/absolute/../
 # spellings of one plan compare equal) and express it as the marker value:
 # repo-relative when the plan lives under the repo root, absolute otherwise.
-plan_dir=$(CDPATH='' cd -- "$(dirname "$plan")" && pwd -P)
-plan_abs="$plan_dir/$(basename "$plan")"
+plan_abs=$(abs_file "$plan") || die "cannot resolve plan path: $plan"
+plan_rel=
 case "$plan_abs" in
-  "$root"/*) plan_id=${plan_abs#"$root"/} ;;
-  *)         plan_id=$plan_abs ;;
+  "$root"/*)
+    plan_id=${plan_abs#"$root"/}
+    plan_rel=$plan_id
+    ;;
+  *)
+    plan_id=$plan_abs
+    ;;
 esac
 
-# True when the workspace at $1 is (or becomes) this plan's: an existing
-# marker must name this plan; a missing marker means a new workspace or a
-# pre-marker legacy one, and either way the plan claims it by writing one.
-owns() {
+show_path() {
+  case "$1" in
+    "$root"/*) printf '%s\n' "${1#"$root"/}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
+slug=$(basename "$plan" .md)
+[ -n "$slug" ] && [ "$slug" != "." ] && [ "$slug" != ".." ] \
+  || die "cannot derive a workspace name from: $plan"
+
+base="$root/.baspowers/sdd"
+
+brief_abs=
+canonical_rev=
+
+if [ -n "$brief" ]; then
+  [ -f "$brief" ] || die "no such brief file: $brief"
+  [ -s "$brief" ] || die "empty brief: $brief"
+  brief_abs=$(abs_file "$brief") || die "cannot resolve brief path: $brief"
+
+  # Identity fields may follow a short title; they must appear in the first
+  # 30 lines. Only the first occurrence of each field is read, so task text
+  # cannot supply identity by accident.
+  brief_field() {
+    awk -v label="$1" '
+      { sub(/\r$/, "") }
+      NR > 30 { exit }
+      index($0, label ":") == 1 {
+        value = substr($0, length(label) + 2)
+        sub(/^[ \t]+/, "", value)
+        sub(/[ \t]+$/, "", value)
+        print value
+        exit
+      }
+    ' "$brief_abs"
+  }
+
+  brief_header_end() {
+    awk '
+      { sub(/\r$/, "") }
+      NR > 30 { exit }
+      index($0, "Plan:") == 1 && !p { p = NR }
+      index($0, "Revision:") == 1 && !r { r = NR }
+      index($0, "Task:") == 1 && !t { t = NR }
+      END {
+        m = p
+        if (r > m) m = r
+        if (t > m) m = t
+        print m + 0
+      }
+    ' "$brief_abs"
+  }
+
+  brief_has_body() {
+    local last
+    last=$(brief_header_end)
+    [ "$last" -gt 0 ] || return 1
+    awk -v last="$last" '
+      { sub(/\r$/, "") }
+      NR > last && $0 !~ /^[ \t]*$/ { found = 1; exit }
+      END { exit(found ? 0 : 1) }
+    ' "$brief_abs"
+  }
+
+  brief_plan=$(brief_field Plan)
+  [ -n "$brief_plan" ] \
+    || die "explicit brief $brief has no Plan: line; a phase document is not a task brief"
+
+  case "$brief_plan" in
+    /*) brief_plan_abs=$(abs_file "$brief_plan") || die "brief names no such plan file: $brief_plan" ;;
+    *) brief_plan_abs=$(abs_file "$root/$brief_plan") || die "brief names no such plan file: $brief_plan" ;;
+  esac
+  [ "$brief_plan_abs" = "$plan_abs" ] \
+    || die "brief is for $(show_path "$brief_plan_abs"), not $plan_id"
+
+  brief_rev=$(brief_field Revision)
+  [ -n "$brief_rev" ] \
+    || die "explicit brief $brief has no Revision: line; a phase document is not a task brief"
+
+  # A revision is either a Git object naming the committed plan (a blob, or a
+  # commit that contains the plan) or a SHA-256 content digest for scratch.
+  # Object IDs resolve with git rev-parse, so full and unambiguous abbreviated
+  # SHA-1/SHA-256 IDs both work. sha256:<digest> is always a content digest; a
+  # bare 64-hex value is ambiguous in a SHA-256 repository, so it is treated
+  # as both and an overlap is diagnosed rather than guessed.
+  resolve_hint=
+
+  is_hex() {
+    case "$1" in
+      '' | *[!0-9a-f]*) return 1 ;;
+    esac
+    return 0
+  }
+
+  resolve_git_object() {
+    local rev=$1 full type blob
+    [ ${#rev} -ge 4 ] && [ ${#rev} -le "$oid_len" ] || return 1
+    is_hex "$rev" || return 1
+    full=$(git rev-parse --verify --quiet --end-of-options "$rev") || return 1
+    [ ${#full} -eq "$oid_len" ] || return 1
+    type=$(git cat-file -t "$full" 2>/dev/null) || return 1
+    case "$type" in
+      blob) blob=$full ;;
+      commit)
+        [ -n "$plan_rel" ] || return 1
+        blob=$(git rev-parse --verify --quiet --end-of-options "$full:$plan_rel") || return 1
+        ;;
+      *) return 1 ;;
+    esac
+    [ "$(git cat-file blob "$blob" | sha256 -)" = "$(sha256 "$plan_abs")" ] || return 1
+    printf '%s\n' "$blob"
+  }
+
+  resolve_revision() {
+    local rev=$1 digest digest_ok=0 object_blob= full
+    resolve_hint=
+    case "$rev" in
+      sha256:*)
+        digest=${rev#sha256:}
+        is_hex "$digest" && [ ${#digest} -eq 64 ] || return 1
+        [ "$digest" = "$(sha256 "$plan_abs")" ] || return 1
+        canonical_rev="sha256:$digest"
+        return 0
+        ;;
+    esac
+
+    is_hex "$rev" || return 1
+    if [ ${#rev} -eq 64 ] && [ "$rev" = "$(sha256 "$plan_abs")" ]; then
+      digest_ok=1
+    fi
+    if [ ${#rev} -le "$oid_len" ]; then
+      object_blob=$(resolve_git_object "$rev") || object_blob=
+    fi
+
+    if [ -n "$object_blob" ] && [ "$digest_ok" -eq 1 ]; then
+      resolve_hint="ambiguous: it is both a Git object and the plan's SHA-256 content digest; use sha256:<digest> to select the digest"
+      return 1
+    fi
+    if [ -n "$object_blob" ]; then
+      canonical_rev=$object_blob
+      return 0
+    fi
+    if [ "$digest_ok" -eq 1 ]; then
+      canonical_rev="sha256:$rev"
+      return 0
+    fi
+
+    # A bare full-length digest that also names a non-plan object is the
+    # ambiguous case a SHA-256 repository creates. Say so instead of only
+    # reporting a byte mismatch.
+    if [ ${#rev} -eq "$oid_len" ] && [ ${#rev} -eq 64 ]; then
+      full=$(git rev-parse --verify --quiet --end-of-options "$rev" 2>/dev/null) || full=
+      if [ -n "$full" ]; then
+        resolve_hint="it names a Git object that is not the plan blob; a bare 64-hex value can also be a SHA-256 content digest — prefix a digest with sha256:"
+      fi
+    fi
+    return 1
+  }
+
+  resolve_revision "$brief_rev" \
+    || die "brief revision $brief_rev does not match the bytes of $plan_id${resolve_hint:+ ($resolve_hint)}"
+
+  brief_task=$(brief_field Task)
+  [ -n "$brief_task" ] \
+    || die "explicit brief $brief has no Task: line; a phase document is not a task brief"
+  case "$brief_task" in
+    *[!A-Za-z0-9._-]*) die "brief Task '$brief_task' is not a single path-safe ID" ;;
+  esac
+  if [ -n "$task_id" ] && [ "$brief_task" != "$task_id" ]; then
+    die "brief is for task $brief_task, not $task_id"
+  fi
+
+  brief_has_body \
+    || die "explicit brief $brief has no task content after its header"
+fi
+
+# True when the workspace at $1 is (or becomes) this plan's for legacy runs:
+# an existing marker must name this plan; a missing marker means a new
+# workspace or a pre-marker legacy one, and either way the plan claims it by
+# writing one. Revision-keyed workspaces belong to explicit runs only.
+owns_legacy() {
+  [ -e "$1/plan-revision" ] && return 1
   if [ -e "$1/plan-path" ]; then
     [ "$(cat "$1/plan-path")" = "$plan_id" ]
   else
@@ -70,14 +342,47 @@ owns() {
   fi
 }
 
-dir="$base/$slug"
-if ! owns "$dir"; then
-  parent=$(basename "$plan_dir")
-  dir="$base/$slug-$parent"
-  if ! owns "$dir"; then
-    n=2
-    while ! owns "$base/$slug-$parent-$n"; do n=$((n + 1)); done
-    dir="$base/$slug-$parent-$n"
+# True when the workspace at $1 is (or becomes) this plan's at this exact
+# revision. A marker-less or path-only directory is not adopted: it may hold
+# another revision's ledger.
+owns_explicit() {
+  local dir=$1
+  if [ -e "$dir/plan-path" ] && [ -e "$dir/plan-revision" ]; then
+    [ "$(cat "$dir/plan-path")" = "$plan_id" ] \
+      && [ "$(cat "$dir/plan-revision")" = "$canonical_rev" ]
+  elif [ ! -e "$dir" ] || [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
+    mkdir -p "$dir"
+    printf '%s\n' "$plan_id" > "$dir/plan-path"
+    printf '%s\n' "$canonical_rev" > "$dir/plan-revision"
+  else
+    return 1
+  fi
+}
+
+plan_dir=$(CDPATH='' cd -- "$(dirname "$plan_abs")" && pwd -P)
+
+if [ -n "$brief" ]; then
+  rev_slug=$(printf '%s' "$canonical_rev" | tr ':' '-')
+  dir="$base/$slug-$rev_slug"
+  if ! owns_explicit "$dir"; then
+    parent=$(basename "$plan_dir")
+    dir="$base/$slug-$rev_slug-$parent"
+    if ! owns_explicit "$dir"; then
+      n=2
+      while ! owns_explicit "$base/$slug-$rev_slug-$parent-$n"; do n=$((n + 1)); done
+      dir="$base/$slug-$rev_slug-$parent-$n"
+    fi
+  fi
+else
+  dir="$base/$slug"
+  if ! owns_legacy "$dir"; then
+    parent=$(basename "$plan_dir")
+    dir="$base/$slug-$parent"
+    if ! owns_legacy "$dir"; then
+      n=2
+      while ! owns_legacy "$base/$slug-$parent-$n"; do n=$((n + 1)); done
+      dir="$base/$slug-$parent-$n"
+    fi
   fi
 fi
 

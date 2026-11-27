@@ -154,7 +154,11 @@ a ledger file, not only in todos.
   `bash scripts/sdd-workspace PLAN_FILE` — it prints the plan's git-ignored
   directory (under `<repo-root>/.baspowers/sdd/`), home to
   every artifact for THIS plan: ledger, briefs, reports, review packages.
-  Another plan's directory is never yours to read or write.
+  When the plan uses explicit task briefs, add `--brief BRIEF` so the
+  ledger and every helper share the workspace keyed by the plan's canonical
+  path and the brief's exact revision. A new revision gets a fresh workspace;
+  a legacy path-keyed workspace is left alone. Another plan's directory is
+  never yours to read or write.
 - Check for this plan's ledger at `<workspace>/progress.md`. If its first
   line names your plan file, tasks with a `Task <N>: complete` line are DONE
   — do not re-dispatch them; resume at the first task without one. A task
@@ -272,16 +276,41 @@ Record BASE (`git rev-parse HEAD`) before dispatching — the review package
 and fix-round diffs need it.
 
 - **Task brief:** before dispatching an implementer, run this skill's
-  `bash scripts/task-brief PLAN_FILE N` — it extracts the task's full text to a
-  uniquely named file and prints the path. The script reads `### Task N`
-  headings; for a phase plan that numbers units differently (`P2-T1`), write
-  the brief file yourself from that phase/task section. Either way the brief
-  carries the plan path and revision, the phase and task IDs, the exact
-  writable files, the given tests (read-only unless the plan expressly makes
-  one writable), the exact test command — the project's own make target,
-  script or CI command first — and the stopping condition. Compose the
-  dispatch so the brief stays the single source of requirements. Your
-  dispatch should contain: (1) one line on where this task fits in the
+  `bash scripts/task-brief PLAN_FILE ID` — it extracts the task's full text to a
+  uniquely named file and prints the path. The extractor keeps nested and
+  non-Task headings in the task body (only the next Task heading ends it),
+  ignores Task headings inside fenced text, keeps the old numeric delimiters
+  (`Task 1.`, `Task 1—Name`, `Task 1)`), and handles a plan with no final
+  newline. It reads `### Task ID` headings, so
+  `ID` works for `Task 7` and `Task P2-T1`.
+  For a phase plan, or any task the extractor cannot bound, write the
+  selected task's brief in authorized scratch with this header and pass it:
+  `bash scripts/task-brief PLAN_FILE ID --brief BRIEF`. The helper verifies
+  the brief's `Plan:` (canonical path) and `Revision:` (the committed plan's
+  blob or commit object ID — full or unambiguous abbreviated, SHA-1 or
+  SHA-256 — or a SHA-256 content digest for scratch: `sha256:<digest>`, or a
+  bare digest when it is not also a Git object) against the selected plan's
+  bytes, and its `Task:` against `ID`. A commit revision resolves to the
+  plan's blob, so identical committed blobs share one workspace. It also
+  requires nonempty task content. A phase document is not a brief: it is
+  rejected before an empty file is created.
+
+  ```
+  Plan: <the selected plan's path>
+  Revision: <plan blob or commit object ID, full or unambiguous abbreviated;
+             or sha256:<digest> for scratch>
+  Task: <stable ID, e.g. P3-T2 or 7>
+
+  <the selected task's brief: requirements, writable files, given tests,
+  exact commands, stopping condition>
+  ```
+
+  Either way the brief carries the plan path and revision, the phase and
+  task IDs, the exact writable files, the given tests (read-only unless the
+  plan expressly makes one writable), the exact test command — the project's
+  own make target, script or CI command first — and the stopping condition.
+  Compose the dispatch so the brief stays the single source of requirements.
+  Your dispatch should contain: (1) one line on where this task fits in the
   project; (2) the brief path, introduced as "read this
   first — it is your requirements, with the exact values to use verbatim";
   (3) interfaces and decisions from earlier tasks that the brief cannot
@@ -317,7 +346,7 @@ Template: [implementer-prompt.md](implementer-prompt.md)
 
 Implementer subagents report one of four statuses. Handle each appropriately:
 
-**DONE:** Generate the review package (`bash scripts/review-package PLAN_FILE BASE HEAD`, from this skill's directory — it prints the unique file path it wrote; BASE is the commit you recorded before dispatching the implementer — never `HEAD~1`, which silently drops all but the last commit of a multi-commit task), then dispatch the task reviewer with the printed path.
+**DONE:** Generate the review package (`bash scripts/review-package PLAN_FILE BASE HEAD [--brief BRIEF --task ID]`, from this skill's directory — it prints the unique file path it wrote; BASE is the commit you recorded before dispatching the implementer — never `HEAD~1`, which silently drops all but the last commit of a multi-commit task), then dispatch the task reviewer with the printed path. Pass `--brief BRIEF --task ID` when the task used an explicit brief so the range is bound to the same plan revision and the caller's independently expected task. Without both flags the package is labelled whole-branch (range only).
 
 **DONE_WITH_CONCERNS:** The implementer completed the work but flagged doubts. Read the concerns before proceeding. If the concerns are about correctness or scope, address them before review. If they're observations (e.g., "this file is getting large"), note them and proceed to review.
 
@@ -344,7 +373,7 @@ required. Implementer self-review never replaces the task review; both are
 needed.
 
 - Hand the reviewer its diff as a file: run this skill's
-  `bash scripts/review-package PLAN_FILE BASE HEAD` and pass the reviewer the file path
+  `bash scripts/review-package PLAN_FILE BASE HEAD [--brief BRIEF --task ID]` and pass the reviewer the file path
   it prints (or, without bash: `git log --oneline`, `git diff --stat`,
   and `git diff -U10` for the range, redirected to one uniquely named
   file). The output never enters your own context, and the reviewer sees
@@ -425,7 +454,7 @@ output; dispatch the re-review once all three are present. Name the
 covering test files in the fix message — a one-line fix does not need the
 whole suite.
 
-**The re-review is scoped.** Run `bash scripts/review-package PLAN_FILE FIX_BASE HEAD`
+**The re-review is scoped.** Run `bash scripts/review-package PLAN_FILE FIX_BASE HEAD [--brief BRIEF --task ID]`
 where FIX_BASE is the head the previous review saw, and dispatch
 [re-review-prompt.md](re-review-prompt.md) with the findings list, the
 brief, the report file, and the printed diff path. The re-reviewer verdicts
@@ -559,7 +588,7 @@ You: I'm using Subagent-Driven Development to execute this plan.
 
 Task 1: Hook installation script
 
-[Write brief for Task 1 (plan path + revision, IDs, writable files, given tests, test command, stop); dispatch implementer with brief + report paths + context]
+[Write explicit Task 1 brief with Plan/Revision/Task header; run task-brief PLAN_FILE 1 --brief BRIEF; dispatch implementer with brief + report paths + context]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
@@ -571,7 +600,7 @@ Implementer: [Later]
   - Self-review: Found I missed --force flag, added it
   - Committed
 
-[Run review-package PLAN_FILE BASE HEAD; dispatch task reviewer with the printed path]
+[Run review-package PLAN_FILE BASE HEAD --brief BRIEF --task 1; dispatch task reviewer with the printed path]
 Task reviewer: Spec ✅ - all requirements met, nothing extra.
   Strengths: Good test coverage, clean. Issues: None. Task quality: Approved.
 
@@ -579,7 +608,7 @@ Task reviewer: Spec ✅ - all requirements met, nothing extra.
 
 Task 2: Recovery modes
 
-[Write brief for Task 2 (plan path + revision, IDs, writable files, given tests, test command, stop); dispatch implementer with brief + report paths + context]
+[task-brief PLAN_FILE 2 (legacy Task heading); dispatch implementer with brief + report paths + context]
 
 Implementer: [No questions]
   - Added verify/repair modes

@@ -5,24 +5,58 @@
 # cut from. One tool call instead of two, because every call in an inline
 # session is a turn that re-reads the whole context.
 #
-# Usage: task-start PLAN_FILE TASK_NUMBER
+# Usage: task-start PLAN_FILE TASK_ID [--brief FILE]
+#   --brief FILE  use and verify an explicit task brief; the brief names the
+#                 plan path, exact revision and task ID.
 # Prints:
 #   brief: <path to the task's brief file>
 #   base:  <full SHA of HEAD>
 set -euo pipefail
 
-if [ $# -ne 2 ]; then
-  echo "usage: task-start PLAN_FILE TASK_NUMBER" >&2
+die() {
+  echo "task-start: $*" >&2
   exit 2
+}
+
+usage() {
+  echo "usage: task-start PLAN_FILE TASK_ID [--brief FILE]" >&2
+  exit 2
+}
+
+brief=
+pos=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --brief)
+      [ $# -ge 2 ] || usage
+      brief=$2
+      shift 2
+      ;;
+    -*)
+      echo "unknown option: $1" >&2
+      usage
+      ;;
+    *)
+      pos+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [ ${#pos[@]} -ne 2 ]; then
+  usage
 fi
 
-plan=$1
-n=$2
+plan=${pos[0]}
+n=${pos[1]}
 sdd="$(cd "$(dirname "$0")/../../subagent-driven-development/scripts" && pwd)"
 
-out=$("$sdd/task-brief" "$plan" "$n")
-brief=$(printf '%s\n' "$out" | sed -n 's/^wrote \(.*\): [0-9][0-9]* lines$/\1/p')
-[ -n "$brief" ] || { echo "task-brief did not report a path: $out" >&2; exit 1; }
+brief_args=("$sdd/task-brief" "$plan" "$n")
+[ -z "$brief" ] || brief_args+=(--brief "$brief")
 
-echo "brief: $brief"
+out=$("${BASH:-bash}" "${brief_args[@]}")
+brief_path=$(printf '%s\n' "$out" | sed -n 's/^wrote \(.*\): [0-9][0-9]* lines$/\1/p')
+[ -n "$brief_path" ] || die "task-brief did not report a path: $out"
+
+echo "brief: $brief_path"
 echo "base: $(git rev-parse HEAD)"

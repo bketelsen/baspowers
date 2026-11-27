@@ -2,42 +2,144 @@
 # Generate a review package: commit list, stat summary, and the net
 # diff with extended context, written to a file the reviewer reads in one
 # call. Using the recorded per-task BASE (not HEAD~1) keeps multi-commit
-# tasks intact.
+# tasks intact. In explicit task mode, --brief FILE and an independent
+# expected --task ID are both required and verified against the plan and
+# revision before the package is written. Without them the package is a
+# whole-branch (range only) review.
 #
-# Usage: review-package PLAN_FILE BASE HEAD [OUTFILE]
+# Usage: review-package PLAN_FILE BASE HEAD [OUTFILE] [--brief FILE --task ID]
 # Default OUTFILE: <repo-root>/.baspowers/sdd/<plan-basename>/review-<base7>..<head7>.diff
 # (named per range, so a re-review after fixes gets a distinct fresh file).
+# An explicit task mode requires both --brief and an independent expected
+# --task ID; without them the package is a whole-branch (range only) review.
 set -euo pipefail
 
-if [ $# -lt 3 ] || [ $# -gt 4 ]; then
-  echo "usage: review-package PLAN_FILE BASE HEAD [OUTFILE]" >&2
+die() {
+  echo "review-package: $*" >&2
   exit 2
+}
+
+usage() {
+  echo "usage: review-package PLAN_FILE BASE HEAD [OUTFILE] [--brief FILE --task ID]" >&2
+  exit 2
+}
+
+brief=
+task_id=
+pos=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --brief)
+      [ $# -ge 2 ] || usage
+      brief=$2
+      shift 2
+      ;;
+    --task)
+      [ $# -ge 2 ] || usage
+      task_id=$2
+      shift 2
+      ;;
+    -*)
+      echo "unknown option: $1" >&2
+      usage
+      ;;
+    *)
+      pos+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [ ${#pos[@]} -lt 3 ] || [ ${#pos[@]} -gt 4 ]; then
+  usage
 fi
+if [ -n "$task_id" ] && [ -z "$brief" ]; then
+  echo "--task requires --brief" >&2
+  usage
+fi
+if [ -n "$brief" ] && [ -z "$task_id" ]; then
+  echo "--brief requires an independent expected --task ID" >&2
+  usage
+fi
+plan=${pos[0]}
+base=${pos[1]}
+head=${pos[2]}
+user_out=
+if [ ${#pos[@]} -eq 4 ]; then
+  user_out=${pos[3]}
+fi
+[ -f "$plan" ] || die "no such plan file: $plan"
 
-plan=$1
-base=$2
-head=$3
-[ -f "$plan" ] || { echo "no such plan file: $plan" >&2; exit 2; }
-
-git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
-git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&2; exit 2; }
+base=$(git rev-parse --verify --quiet --end-of-options "${base}^{commit}") || die "bad BASE"
+head=$(git rev-parse --verify --quiet --end-of-options "${head}^{commit}") || die "bad HEAD"
 
 # Range guards (exit 3): a wrong-branch HEAD yields a range that is empty or
 # not rooted at BASE; either would silently produce a bogus review package.
 git merge-base --is-ancestor "$base" "$head" || { echo "HEAD is not a descendant of BASE: ${base}..${head}" >&2; exit 3; }
 [ "$(git rev-list --count "${base}..${head}")" -gt 0 ] || { echo "empty commit range: ${base}..${head}" >&2; exit 3; }
 
-if [ $# -eq 4 ]; then
-  out=$4
+abs_file() {
+  local dir
+  dir=$(CDPATH='' cd -- "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1
+  printf '%s/%s\n' "$dir" "$(basename "$1")"
+}
+
+sdd="$(cd "$(dirname "$0")" && pwd)/sdd-workspace"
+ws_args=("$sdd" "$plan")
+brief_abs=
+if [ -n "$brief" ]; then
+  [ -f "$brief" ] || die "no such brief file: $brief"
+  brief_abs=$(abs_file "$brief") || die "cannot resolve brief path: $brief"
+  ws_args+=(--brief "$brief" --task "$task_id")
+fi
+
+if [ -n "$user_out" ]; then
+  out=$user_out
 else
-  # Invoke via bash rather than direct exec: some extractors (Python zipfile)
-  # strip Unix exec bits when unpacking marketplace packages (#2040).
-  dir=$("${BASH:-bash}" "$(cd "$(dirname "$0")" && pwd)/sdd-workspace" "$plan")
+  dir=$("${BASH:-bash}" "${ws_args[@]}")
   out="$dir/review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
 fi
 
+plan_abs=$(abs_file "$plan") || die "cannot resolve plan path: $plan"
+[ ! -L "$out" ] || die "refusing symlink output: $out"
+out_abs=$(abs_file "$out") || die "cannot resolve output path: $out"
+[ "$out_abs" != "$plan_abs" ] || die "refusing to write the plan file: $out"
+if [ -n "$brief_abs" ] && [ "$out_abs" = "$brief_abs" ]; then
+  die "refusing to overwrite the explicit brief: $out"
+fi
+
+# A user-chosen path may not overwrite a tracked file. Default outputs live
+# in the git-ignored workspace and are scratch by construction.
+if [ -n "$user_out" ]; then
+  root=$(CDPATH='' cd -- "$(git rev-parse --show-toplevel)" 2>/dev/null && pwd -P) || root=
+  if [ -n "$root" ]; then
+    case "$out_abs" in
+      "$root"/*)
+        rel=${out_abs#"$root"/}
+        if git -C "$root" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then
+          die "refusing to overwrite tracked file: $out (choose scratch)"
+        fi
+        ;;
+    esac
+  fi
+fi
+
+# The explicit brief is validated even when the caller names an output file.
+if [ -n "$brief" ] && [ -n "$user_out" ]; then
+  "${BASH:-bash}" "${ws_args[@]}" >/dev/null
+fi
+
+tmp=$(mktemp "${out}.XXXXXX")
+trap 'rm -f -- "$tmp"' EXIT
 {
-  echo "# Review package: ${base}..${head}"
+  if [ -n "$brief" ]; then
+    echo "# Review package: ${base}..${head} (task ${task_id})"
+  else
+    echo "# Review package: ${base}..${head} (whole branch or range-only; no explicit task brief)"
+  fi
+  echo
+  printf 'Plan: %s (%s)\n' "$plan" "$(git hash-object -- "$plan")"
+  if [ -n "$brief" ]; then printf 'Brief: %s\n' "$(git hash-object -- "$brief")"; fi
   echo
   echo "## Commits"
   git log --oneline "${base}..${head}"
@@ -47,7 +149,8 @@ fi
   echo
   echo "## Diff"
   git diff -U10 "${base}..${head}"
-} > "$out"
+} > "$tmp"
+mv -f -- "$tmp" "$out"
 
 commits=$(git rev-list --count "${base}..${head}")
 echo "wrote ${out}: ${commits} commit(s), $(wc -c < "$out" | tr -d ' ') bytes"
