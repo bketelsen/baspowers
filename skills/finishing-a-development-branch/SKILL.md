@@ -15,7 +15,7 @@ Check the requested action against repository rules and your role before running
 
 ## Step 1: Verify Tests
 
-Run the project's full test suite (`npm test` / `cargo test` / `pytest` / `go test ./...`).
+Run the repository's applicable gates in their prescribed environment. Cite the source of each command and record its result for the actual head.
 
 **If tests fail**, report the failures and stop — the menu comes after a green suite:
 
@@ -61,7 +61,34 @@ ambiguity: integrating into the wrong base is expensive to undo.
 ## Step 4: Select Requested Integration
 
 Follow the requested outcome already present in the task or repository
-instructions:
+instructions.
+
+**Before presenting the work as ready** — marking a PR ready, handing off the
+head for merge, or merging — confirm the review evidence the repository
+requires:
+
+- A verdict that names the **current head SHA** wherever the repository
+  or the requested outcome requires an independent review, published where
+  the repository keeps review evidence (the PR, a named document, or an
+  artifact). If the head moved after the review (a fix, rebase, amend, or
+  push), that verdict is stale: re-review the actual head before the ready
+  claim. Record both SHAs if you must describe the transition.
+- Every required correction and its test evidence at the location the
+  repository prescribes. If it requires the same PR, a follow-up cannot
+  satisfy the gate.
+- The gates and environment the repository names for the changed paths.
+  Do not infer an exemption from a file extension, a label, a risk tier, a
+  score, or a small diff; a docs-only change follows the repository's rule
+  for docs, which may still require review. Do not assume a language, test
+  suite, or copy/organization rule the repository has not stated.
+- Compliance with any repository history-retention rule. Where it permits
+  an empty promotion, record the two heads and show the trees match.
+
+Opening a draft PR, pushing a branch, or reporting its state is not a ready
+claim. Say which head was reviewed and which fix range is still unreviewed,
+so the merge gate knows what it must review. Green tests do not stand in for
+any of this. A score or review verdict is advice about readiness; neither
+grants merge authority, and the role and head checks below still decide.
 
 - **PR merge only:** For a request to merge a specific PR, verify someone else made the last commit and you did not approve the PR (approve or merge, never both). If either check fails or is uncertain, hand off the head SHA. Follow the repo's PR procedure. Without one, use its permitted forge merge method with the reviewed head SHA as a merge precondition; if you cannot enforce that match, hand off. Never use `--admin`, merge locally or push directly to the default branch as a substitute.
 - If the request includes opening a PR, push and create the PR.
@@ -215,6 +242,12 @@ place.
 |--------|---------|
 | "Tests passed earlier this session" | Run the suite on the tree you are about to integrate. A green run only proves the tree it ran on. |
 | "They obviously want it merged" | Merge only when local integration is part of the requested outcome; otherwise preserve the branch. |
+| "Tests are green, so the branch is ready" | Green tests are not review evidence. A ready handoff needs a verdict and corrections at the current head. |
+| "It's docs-only, so the review gate does not apply" | The repository's rule for docs decides that. File extensions and labels are not exemptions. |
+| "The review was on the previous head, close enough" | An approval covers one SHA. Re-review the actual head or report it as unreviewed. |
+| "The blocking fix can land in a follow-up PR" | When the repository requires same-PR correction, verify it here before handoff. |
+| "Force-push the corrections into a tidy history" | Follow repository history rules. A rewritten head does not inherit review. |
+| "The score says merge" | The score is advisory. Merge authority stays with this step's role and head checks. |
 | "They seem done with this feature — I'll offer to discard it" | Discard happens only when your human partner asks for it in so many words. |
 | "'Yeah, get rid of it' counts as confirmation" | Only the typed word `discard` authorizes deletion. |
 | "The PR is up, so the worktree is clutter now" | PR feedback gets fixed in that worktree. It stays until the work lands. |
@@ -222,4 +255,4 @@ place.
 | "Removal refused — `--force` is just finishing the cleanup" | The refusal means files exist only in that worktree. `--force` destroys them permanently. Preserve the worktree and report. |
 | "The merged-result failure is probably flaky" | A failing merged result stops everything. Branch and worktree stay put while you investigate. |
 | "The base branch is obviously main" | Derive the fork point and compare it with upstream/default branch evidence. Stop if they disagree. |
-| "The push was rejected — force-push will fix it" | A rejected push means the remote moved. Investigate; force-push only on your human partner's explicit request. |
+| "The push was rejected — force-push will fix it" | A rejected push means the remote moved. Investigate; force-push only if repository rules permit it and your human partner explicitly authorizes it; record the new head and refresh required review. |
