@@ -266,7 +266,7 @@ Base: a7981ec  Head: 3df7661 — diff package matched.
 
 ### Assessment
 
-**Reasoning:** Core implementation is solid with good architecture and tests. Important issues (help text, date validation) must be fixed before merge.
+**Reasoning:** Core implementation is solid with good architecture and tests. Important issues (help text, date validation) must be fixed before the ready handoff.
 
 VERDICT: CHANGES REQUIRED
 ```

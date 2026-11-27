@@ -52,8 +52,10 @@ continue through implementation and verification.
 Ask your human partner only when progress requires information you cannot
 discover safely, a material expansion of scope, or new authority for a
 destructive or irreversible action. External actions such as publishing,
-deploying, merging, spending money, or messaging others require authorization
-unless the request already clearly includes that side effect.
+deploying, spending money, or messaging others require authorization unless
+the request already clearly includes that side effect. Integrating work into
+a shared or default branch is never the agent's action: no request, role or
+repository makes a merge yours, so prepare the handoff instead.
 
 When a hard technical decision remains ambiguous after inspecting the code,
 tests, and history, use **baspowers:consulting-cross-model** before

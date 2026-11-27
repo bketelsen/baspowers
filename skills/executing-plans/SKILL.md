@@ -45,9 +45,10 @@ plan into a shape its approval did not cover.
 
 Four things stop you, and only these: an irreversible or destructive
 operation; a security-sensitive action; a side effect outside this worktree
-that norms say you ask about first (a merge, a push to a shared branch, a
-publish); and a plan so broken that every path forward is a guess even after
-baspowers:consulting-cross-model. For those, stop and ask. A change of scope
+that norms say you ask about first (a push to a shared branch, a publish);
+and a plan so broken that every path forward is a guess even after
+baspowers:consulting-cross-model. For those, stop and ask. A merge is never
+the agent's action: hand the reviewed head off instead. A change of scope
 or of the plan revision also leaves this skill: it returns to the planner or
 approver rather than becoming a ruling.
 
@@ -322,7 +323,7 @@ yourself against the package, as a separate pass after the last task's
 ledger line. Write `Final review: self-review (no subagent tool)` to the
 ledger, and say so in your final message: a self-review by the author is
 weaker than a fresh reviewer, and your human partner decides whether that
-is enough before merge.
+is enough before the ready handoff.
 
 Sort the findings before you act on any of them. The reviewer's severity
 labels are advice; the gate is yours. Its "Declined to judge" list is

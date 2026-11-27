@@ -38,7 +38,7 @@ Run it last, once everything else is done; checks that wait on shared resources 
    Break each rewritten, not deleted, code path and confirm a test fails.
    If none fails, add a test that passes on the pre-cleanup head and fails on the broken rewrite, or drop the rewrite.
    Run the full suite, the required gates, and any benchmark the cleanup's paths fall under.
-7. **Review fresh** with steps 1 to 4 and 6 of baspowers:merging-when-approved, and merge only when asked.
+7. **Review fresh** with steps 1 to 4 and 5 of baspowers:merging-when-approved, and hand the reviewed head to the human; the agent never merges.
    The scan runs once: approvals from before it count only if it changed nothing, and fixes from this review need no new scan.
 
 ## Architecture mode: survey, then refactor programs

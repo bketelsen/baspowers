@@ -34,9 +34,10 @@ approver decides.
 
 Four things stop you, and only these: an irreversible or destructive
 operation; a security-sensitive action; a side effect outside this worktree
-that norms say you ask about first (a merge, a push to a shared branch, a
-publish); and a plan so broken that every path forward is a guess even after
-baspowers:consulting-cross-model. For those, stop and ask. A change of scope
+that norms say you ask about first (a push to a shared branch, a publish);
+and a plan so broken that every path forward is a guess even after
+baspowers:consulting-cross-model. For those, stop and ask. A merge is never
+the agent's action: hand the reviewed head off instead. A change of scope
 or of the approved plan revision also returns to the planner or approver
 instead of becoming a ruling.
 
@@ -435,8 +436,8 @@ Before the loop starts, two routes leave it immediately:
 - Record Minor findings in the progress ledger as you go
   (`Task <N>: minor (deferred): <one-liner>`), and point the final
   whole-branch review at that list so it can triage which must be fixed
-  before merge. A roll-up nobody reads is a silent discard. Minor findings
-  never enter the loop.
+  before the handoff. A roll-up nobody reads is a silent discard. Minor
+  findings never enter the loop.
 - A finding labeled plan-mandated — or any finding that conflicts with
   what the plan's text requires — is yours to rule on: weigh the finding
   against the plan text, decide with the spec as the binding authority, and
@@ -549,7 +550,7 @@ package path as `[DIFF_FILE]`, the plan and spec paths, the repository's index, 
 focus cases from the plan or handoff, if any, and the plan's phase `Done when` lines so
 it can check each phase's outcome against evidence. Point it at the ledger's
 deferred-minor and parked lines so it can triage which must be fixed before
-merge. Do not hand it a guessed standard: no assumed label, risk tier,
+the handoff. Do not hand it a guessed standard: no assumed label, risk tier,
 language, test suite, or copy/organization rule. Rule on
 every line of its "Declined to judge" list and ledger each as
 `Final: Ruling: <behavior set aside> — <decision and why> — <cost if wrong>`.
@@ -676,7 +677,7 @@ Re-reviewer: Missing progress reporting — ADDRESSED (src/recovery.js:41).
 [After all tasks]
 [Run review-package PLAN_FILE MERGE_BASE HEAD; dispatch final code-reviewer, most capable model]
 Final reviewer: Reviewed MERGE_BASE..b7c8d9e at b7c8d9e. All requirements met.
-Deferred minors triaged: none block merge.
+Deferred minors triaged: none block the handoff.
 
 [Preserve workspace and evidence paths for handoff]
 

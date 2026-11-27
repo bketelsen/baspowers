@@ -78,13 +78,13 @@ Subagent (general-purpose): "Fix tool-approval-race-conditions.test.ts failures"
 
 Multiple dispatch calls in one response = parallel execution. One per response = sequential.
 
-### 4. Review and Integrate
+### 4. Review and Prepare the Task Branch
 
 When agents return:
 - Read each summary
 - Verify fixes don't conflict
 - Run full test suite
-- Integrate all changes
+- Collect the reviewed edits on the task branch; hand any merge to the human
 
 ## Agent Prompt Structure
 
