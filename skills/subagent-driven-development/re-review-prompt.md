@@ -40,6 +40,28 @@ Subagent (general-purpose):
     `git diff --stat [FIX_BASE_SHA]..[HEAD_SHA]` and
     `git diff [FIX_BASE_SHA]..[HEAD_SHA]`.
 
+    Check the diff header names exactly this range. If the head or base
+    differs, stop and report the mismatch: a fix diff of another range
+    answers nothing about these findings. End your report with the head you
+    reviewed.
+
+    **Repository correction rules:** If the repository requires same-PR fixes,
+    verify the correction and required evidence there before calling it addressed.
+    Follow local history-retention rules, including any expressly permitted empty
+    promotion. Record both heads and verify identical trees for such a promotion.
+    Otherwise do not invent a same-PR or no-rewrite rule. A verdict never transfers
+    to a different head; obtain any required fresh verdict.
+
+
+    ## Requirements Are Not Potential Defects
+
+    For a finding that quoted an exact requirement, verify the requirement
+    still applies and is met. For a potential defect, the specific defect
+    must no longer exist in the code; a stated intent, an "attempted" note,
+    or a test that asserts something else is NOT ADDRESSED. Do not infer a
+    severity or a risk tier from a label, the previous reviewer's wording,
+    or a file extension; grade the fix's effect.
+
     Your review is read-only on this checkout. Do not mutate the working
     tree, the index, HEAD, or branch state in any way.
 
@@ -97,7 +119,8 @@ Subagent (general-purpose):
     ### Verdict
 
     **Fix round:** [All findings addressed, no new Critical/Important
-    breakage | Findings remain open] — list the open ones.
+    breakage | Findings remain open] — list the open ones, and state the
+    reviewed head.
 ```
 
 **Placeholders:**
@@ -109,7 +132,7 @@ Subagent (general-purpose):
 - `[REPORT_FILE]` — the implementer's report file (fix reports appended)
 - `[FIX_BASE_SHA]` — the head the previous review saw
 - `[HEAD_SHA]` — current commit
-- `[DIFF_FILE]` — the path `bash scripts/review-package PLAN_FILE FIX_BASE HEAD` printed
+- `[DIFF_FILE]` — the path `bash scripts/review-package PLAN_FILE FIX_BASE HEAD [--brief BRIEF --task ID]` printed
 
 **Re-reviewer returns:** per-finding verdicts (ADDRESSED / NOT ADDRESSED),
 new breakage in the fix diff, out-of-scope observations, and a round verdict.

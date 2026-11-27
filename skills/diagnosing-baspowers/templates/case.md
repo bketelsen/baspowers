@@ -1,6 +1,6 @@
 # Case: <session-id>
 
-Workspace: ~/.baspowers/diagnosing-baspowers/<session-id>/
+Workspace: ~/.baspowers/diagnosing-baspowers/<session-id>/ (or the writable workspace the host gives you; name the path you used)
 Created: <ISO timestamp>
 
 ## Problem statement (agreed with your human partner)

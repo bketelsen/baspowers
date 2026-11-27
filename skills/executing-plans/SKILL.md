@@ -36,9 +36,8 @@ as `Ruling: <what you decided> — <why> — <what it costs if wrong>`, and keep
 going. Deviating from the plan without a ledgered ruling is a decision made
 in secret.
 
-Two limits keep a ruling from becoming a decision made in secret. The ledger
-is memory, not a record — it is deleted when the plan finishes — so every
-ruling also reaches your human partner in the final message, and a decision
+Two limits keep a ruling from becoming a decision made in secret. The ledger supports recovery but does not replace the handoff. Every ruling
+reaches your human partner in the final message, and a decision
 the repository requires goes through its own decision-record procedure. If none applies, report the rationale without inventing an ADR.
 And a ruling that changes the plan's scope or its approved revision is not
 yours: report it, and the planner or approver decides. Never edit an approved
@@ -46,9 +45,10 @@ plan into a shape its approval did not cover.
 
 Four things stop you, and only these: an irreversible or destructive
 operation; a security-sensitive action; a side effect outside this worktree
-that norms say you ask about first (a merge, a push to a shared branch, a
-publish); and a plan so broken that every path forward is a guess even after
-baspowers:consulting-cross-model. For those, stop and ask. A change of scope
+that norms say you ask about first (a push to a shared branch, a publish);
+and a plan so broken that every path forward is a guess even after
+baspowers:consulting-cross-model. For those, stop and ask. A merge is never
+the agent's action: hand the reviewed head off instead. A change of scope
 or of the plan revision also leaves this skill: it returns to the planner or
 approver rather than becoming a ruling.
 
@@ -101,7 +101,7 @@ digraph process {
     "More tasks remain?" [shape=diamond];
     "Final whole-branch review (fresh reviewer if you have one)" [shape=box];
     "Re-grade, then: Critical/Important → ONE fix pass, each fix RED→GREEN + green suite; Minor → ledger" [shape=box];
-    "Final review clean: delete this plan's workspace" [shape=box];
+    "Preserve evidence; clean only disposable scratch" [shape=box];
     "Use baspowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
     "Setup: worktree, workspace + ledger, read plan + spec, pre-flight scan" -> "task-start: brief + BASE; read the brief";
@@ -117,8 +117,8 @@ digraph process {
     "More tasks remain?" -> "task-start: brief + BASE; read the brief" [label="yes"];
     "More tasks remain?" -> "Final whole-branch review (fresh reviewer if you have one)" [label="no"];
     "Final whole-branch review (fresh reviewer if you have one)" -> "Re-grade, then: Critical/Important → ONE fix pass, each fix RED→GREEN + green suite; Minor → ledger";
-    "Re-grade, then: Critical/Important → ONE fix pass, each fix RED→GREEN + green suite; Minor → ledger" -> "Final review clean: delete this plan's workspace";
-    "Final review clean: delete this plan's workspace" -> "Use baspowers:finishing-a-development-branch";
+    "Re-grade, then: Critical/Important → ONE fix pass, each fix RED→GREEN + green suite; Minor → ledger" -> "Preserve evidence; clean only disposable scratch";
+    "Preserve evidence; clean only disposable scratch" -> "Use baspowers:finishing-a-development-branch";
 }
 ```
 
@@ -143,8 +143,12 @@ and the new one resumes from the same ledger.
   `bash ../subagent-driven-development/scripts/sdd-workspace PLAN_FILE` — it
   prints the plan's git-ignored directory
   (`<repo-root>/.baspowers/sdd/<plan-basename>/`), home to every
-  artifact for THIS plan: ledger, briefs, review packages. Another plan's
-  directory is never yours to read or write.
+  artifact for THIS plan: ledger, briefs, review packages. When the plan uses
+  explicit task briefs, add `--brief BRIEF` so the ledger and every helper
+  share the workspace keyed by the plan's canonical path and the brief's
+  exact revision; a new revision gets a fresh workspace, and a legacy
+  path-keyed workspace is left alone. Another plan's directory is never
+  yours to read or write.
 - Check for this plan's ledger at `<workspace>/progress.md`. If its first
   line names your plan file, tasks with a `Task <N>: complete` line are
   DONE — do not redo them; resume at the first task without one. Their
@@ -190,14 +194,24 @@ in the workspace and read its tail; read a brief, not the whole plan.
 
 ### 1. Take the task
 
-- Run this skill's `bash scripts/task-start PLAN_FILE N`. It prints the brief
-  path and BASE (the commit the task's range is cut from) in one call. The
-  script reads `### Task N` headings; a phase plan that numbers its units
-  differently (`P2-T1`) gets the same brief written by hand from that
-  phase/task section. Either way the brief carries the plan path and revision,
-  the phase and task IDs, the exact writable files, the given tests (read-only
-  unless the plan says otherwise), the exact test command and the stopping
-  condition. The brief contract matters; the extractor does not.
+- Run this skill's `bash scripts/task-start PLAN_FILE ID [--brief BRIEF]`.
+  It prints the brief path and BASE (the commit the task's range is cut from)
+  in one call. Without `--brief`, the script reads `### Task ID` headings,
+  keeps nested and non-Task headings in the task body (only the next Task
+  heading ends it), ignores Task headings inside fenced text, keeps the old
+  numeric delimiters (`Task 1.`, `Task 1—Name`, `Task 1)`), and handles a
+  plan with no final newline. For a phase plan, write the
+  selected task's brief in scratch with `Plan:`, `Revision:` and `Task:`
+  header lines, a blank line, then nonempty task content; pass it as
+  `--brief BRIEF`. The helper verifies the plan path, exact revision
+  (the committed plan's blob or commit object ID, full or unambiguous
+  abbreviated in SHA-1 or SHA-256, or a SHA-256 content digest for scratch),
+  task ID and bytes, and rejects a phase document before creating an empty
+  brief.
+  Either way the brief carries the plan path and revision, the phase and task
+  IDs, the exact writable files, the given tests (read-only unless the plan
+  says otherwise), the exact test command and the stopping condition. The
+  brief contract matters; the extractor does not.
   Read the brief for every task, including ones you remember from setup:
   what you remember is a summary, the brief has the exact values,
   signatures, and test cases.
@@ -261,10 +275,13 @@ the claim. If any item is missing, the task is not complete: finish it.
 
 ### 4. Complete the task
 
-Run this skill's `bash scripts/task-done PLAN_FILE N BASE -- <test command>`
+Run this skill's
+`bash scripts/task-done PLAN_FILE ID BASE [--brief BRIEF] -- <test command>`
 with the test command the brief names for the whole task. It runs the
 tests, keeps the full output in the workspace, prints the tail, and — only
-if they pass — appends the completion line to the ledger:
+if they pass — appends the completion line to the ledger. With `--brief`,
+it also re-verifies the plan/brief identity and that BASE still descends
+from HEAD before recording anything.
 
 `Task <N>: complete (commits <base7>..<head7>, tests: <command> → <result>)`
 
@@ -274,14 +291,21 @@ mark the todo complete and take the next task.
 ## Final Review
 
 Run `bash ../subagent-driven-development/scripts/review-package PLAN_FILE MERGE_BASE HEAD`
-(MERGE_BASE = the commit the branch started from, e.g.
-`git merge-base main HEAD`) and review from the file it prints.
+(MERGE_BASE = the commit the branch actually started from, verified against
+the branch's upstream and the repository's default branch — not an assumed
+`main`; in a stacked branch it is the parent PR's head, not `origin/main`).
+Record MERGE_BASE and HEAD in full and keep the package in the plan workspace
+— the helper refuses to overwrite a tracked file. Publish the review evidence
+— verdict, both SHAs, package path and output — where the repository
+prescribes it, such as the PR body or a named evidence document; when it
+prescribes none, keep that record with the plan workspace and name the path.
+Review from the file the package printed.
 
 **With a subagent tool:** dispatch the reviewer on the most capable
 available model — the whole-branch review is a judgment task — using
 baspowers:requesting-code-review's
 `code-reviewer.md` reference (load from `requesting-code-review` via the host loader, or read the sibling skill file in a checkout), with the
-package path as `[DIFF_FILE]`, the plan and spec paths, the concrete review-focus cases from the plan or handoff, if any (the input classes and failure modes the plan
+package path as `[DIFF_FILE]`, the plan and spec paths, the repository's index, template, rubric, applicable gates and environment, and concrete review-focus cases from the plan or handoff, if any (the input classes and failure modes the plan
 singled out as most likely to bite — the reviewer checks each deliberately), and a
 pointer to the ledger's `Ruling:` lines so it can weigh the calls you
 made. Specify the model
@@ -289,12 +313,17 @@ explicitly; an omitted model inherits the session's, which may not be the
 most capable. This is the one fresh context the whole run buys. Do not
 skip it, and do not replace it with your own read of the diff.
 
+Do not hand the reviewer a guessed standard: no assumed label, risk tier,
+language, test suite, or copy/organization rule. Its report must separate
+exact requirements from evidence-based potential defects, and name the risk
+paths it derived from the diff.
+
 **Without a subagent tool:** read code-reviewer.md and perform that review
 yourself against the package, as a separate pass after the last task's
 ledger line. Write `Final review: self-review (no subagent tool)` to the
 ledger, and say so in your final message: a self-review by the author is
 weaker than a fresh reviewer, and your human partner decides whether that
-is enough before merge.
+is enough before the ready handoff.
 
 Sort the findings before you act on any of them. The reviewer's severity
 labels are advice; the gate is yours. Its "Declined to judge" list is
@@ -313,15 +342,17 @@ because the spec was silent has graded the spec, not the effect. Then:
   the fix pass, and never become rulings — a ruling is a decision about a
   conflict, not a note that you declined a polish suggestion.
 
-Fix the Critical and Important findings yourself — you are the
-implementer here — in ONE pass. Each fix is verified by TDD, not by a
-second reviewer: write the test that reproduces the finding, watch it
-fail, make it pass, then run the whole suite. Record each in the ledger as
-`Final: fixed <finding> — <test name> RED→GREEN, suite <N>/<N>`. A fix
-without a test that failed first is not verified; a suite that is not
-green after the pass means the pass is not over. Do not dispatch a
-re-review: it would re-read a diff whose covering tests already answer
-"addressed" and whose suite run already answers "broke nothing".
+Fix the Critical and Important findings in one pass. Use TDD for each
+behavioral correction and run the applicable repository gates on the fix head.
+Record test and correction evidence in the prescribed location; follow any
+same-PR or history-retention rules, including any permitted empty promotion.
+
+A fix makes the old verdict stale. Request the required current-head review
+from an authorized independent reviewer (fresh-context reviewer when permitted,
+otherwise hand off to the authorized human or repository review channel).
+The author supplies test evidence, not an independent verdict. Until it arrives,
+report both heads and mark the fix head unreviewed, not ready. This review gate
+is distinct from the one-pass fix budget.
 
 A finding you decide not to fix is a ruling — `Final: Ruling: <finding> —
 <why the code stands> — <cost if wrong>` — and reaches your human partner
@@ -333,14 +364,14 @@ Before you delete anything, collect every ledger line containing
 `Ruling:` into your final message under "Rulings I made", in the order you
 made them, each with what it costs if wrong, and every `minor (deferred)`
 line under "Deferred minors". Both lists are exhaustive. Your final
-message is the only place the decisions you took on your human partner's
-behalf — and the findings you chose not to act on — reach them; the ledger
-dies with this workspace, so a ruling missing here no longer exists anywhere.
+message communicates the decisions and deferred findings even when the
+workspace is retained. Do not rely on the ledger alone for handoff.
 Link any decision record created under repository rules.
 
-When the final review is clean and its fixes are committed, delete this
-plan's workspace directory — the git history is the record now. Sibling
-directories belong to other plans; leave them alone.
+Preserve the workspace whenever it contains the only copy of any review
+verdict, diff, or correction evidence. Before any authorized cleanup, verify
+that required records and their paths remain accessible elsewhere. If the
+repository gives no other evidence location, leave the workspace intact.
 
 Use baspowers:finishing-a-development-branch.
 
@@ -359,6 +390,9 @@ Use baspowers:finishing-a-development-branch.
 | "Subagents are slow and expensive, I'll skip the final review too" | Inline already removed the per-task reviewers. One review of the whole branch is the floor, not the ceiling. |
 | "The reviewer said Minor, so it's Minor" | The label graded the spec's silence. Grade what the person gets. Re-grade, then gate. |
 | "The fix is obvious, no need for a failing test first" | The failing test is the only proof the finding was real and is now gone. Without it you have a diff and a hope. |
+| "The review was clean before the fix pass" | The fixes made a new head. That verdict covers the old tree; record both heads and leave the ready claim to a review of the current one. |
+| "Green tests and a docs-only diff are enough to finish" | Review evidence is its own claim, and the repository's rules decide what docs need. Neither is inferred from a suite or a file extension. |
+| "I'll put the blocking fix in a follow-up PR" | If required by repository rules, keep the correction and evidence on this PR. |
 | "I'll fix the minors too while I'm in there" | Every minor you fix is a test, a fix, and a suite run your partner did not ask for. Ledger them; your partner decides. |
 
 ## Example Workflow
@@ -374,14 +408,14 @@ You: I'm using the executing-plans skill to implement this plan inline.
 
 Task 1: Hook installation script
 
-[task-start plan 1 → brief read; BASE a1b2c3d]
+[Write explicit Task 1 brief with Plan/Revision/Task header; task-start plan 1 --brief BRIEF → brief read; BASE a1b2c3d]
 [Step 1: write failing test — written]
 [Step 2: run it — FAIL: install_hook not defined. Matches Expected.]
 [Step 3: implement — written]
 [Step 4: run it — PASS 1/1. Matches Expected.]
 [Step 5: commit — d4e5f6a]
 [Contract: tests ran, output read, no deviations]
-[task-done plan 1 a1b2c3d -- npm test -- hooks → ledger: Task 1: complete (commits a1b2c3d..d4e5f6a, tests: npm test -- hooks → 1/1 pass)]
+[task-done plan 1 a1b2c3d --brief BRIEF -- npm test -- hooks → ledger: Task 1: complete (commits a1b2c3d..d4e5f6a, tests: npm test -- hooks → 1/1 pass)]
 
 Task 2: Recovery modes
 
@@ -408,7 +442,7 @@ Deferred minors:
 - README lacks a usage example
 - recovery.js could split verify/repair into two files
 
-[Delete this plan's workspace — the record now lives in git]
+[Preserve workspace and evidence paths for handoff]
 
 Using baspowers:finishing-a-development-branch.
 ```

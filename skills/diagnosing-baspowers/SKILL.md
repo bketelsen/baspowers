@@ -8,11 +8,11 @@ description: Use when a baspowers session went wrong and your human partner want
 ## Overview
 
 Pin down with your human partner what went wrong in a session, read the
-transcripts on disk, and report what happened with evidence. Where
+session records the host exposes or sanitized evidence explicitly supplied for this diagnosis, and report what happened with evidence. Where
 baspowers skill text contributed, quote it and propose a change: your
 human partner maintains these skills and decides what changes.
 
-**Core principle:** Every finding cites `path:line`. No citation, no
+**Core principle:** Every finding cites `path:line` or a line in a named supplied excerpt. No citation, no
 finding. Every number comes from the transcript or from a command you ran,
 never from memory.
 
@@ -25,19 +25,23 @@ Create a todo per step. Step 5 runs only on its stated condition.
    partner expected, what happened, and the observable they care about
    (wall-clock, tokens, repeated actions, one specific action). "It took
    too long" is a complaint, not a problem statement.
-2. **Locate.** Resolve each session to verified absolute filesystem paths using
+2. **Locate.** With supplied sanitized evidence, cite the provided file or excerpt and line numbers, note omitted context, and do not hunt for the original. Otherwise resolve each session to verified absolute filesystem paths using
    `references/session-discovery.md`. Confirm a past session by quoting its
    first prompt and timestamp, and list every candidate you rejected with the
    reason, or "none". Enumerate subagent transcripts. Create
    `~/.baspowers/diagnosing-baspowers/<session-id>/`, tell your
    partner the path, and fill `templates/case.md` there, following its
-   provenance rules for environment and skill observations.
+   provenance rules for environment and skill observations. If your role
+   cannot write there, use the writable workspace the host gives you, or keep
+   the case and report in the final message, and say which you used.
 3. **Triage.** Read the region around the reported problem yourself. Then
    dispatch one analyst subagent per dimension in parallel, each given the
    case file path, `prompts/analyst-common.md`, and one dimension file from
    `prompts/`: `skill-timeline.md`,
    `plan-adherence.md`, `repeated-work.md`, `stumbles.md`,
    `quality-evidence.md`, `request-conflicts.md`, `cost-and-time.md`.
+   Where the role or host allows no delegation, run the dimensions serially in
+   the same order and say the analysis is not independent.
    Split a dimension by turn range when the transcript is long. Discard
    any returned finding without `path:line`.
 4. **Report.** Fill every section of `templates/report.md` in order, write
@@ -46,8 +50,8 @@ Create a todo per step. Step 5 runs only on its stated condition.
    redundant copy.
 5. **Similar sessions** — when asked. Turn confirmed findings into a
    signature, list candidates by mtime and size, find marker line numbers,
-   dispatch `prompts/similar-session.md` per candidate in parallel, and
-   append report §9.
+   dispatch `prompts/similar-session.md` per candidate in parallel (serially
+   when the role or host allows no delegation), and append report §9.
 
 ## Quick reference
 
@@ -68,6 +72,13 @@ yourself in step 3 and which findings to lead with in the verdict.
 - **Context safety.** One transcript line can be a megabyte. Follow
   `references/context-safety.md` on every session file, every time.
 - **Read-only.** Never modify, move, or delete a session file.
+- **No export.** Never upload, attach, or copy a session file or a repository
+  snapshot anywhere. If your partner wants evidence shared, use the approved
+  mechanism, sanitized, and only with authorization; describe the finding in the
+  report first.
+- **Role limits.** A limited or read-only role reports in its final message. It
+  does not write outside the paths it was given, install a tool, or claim access
+  it lacks; name the gap instead.
 - **Exact paths to subagents.** A subagent's "current session" is its
   own. Pass absolute paths and ids.
 - **Human prompts only.** Hook output, system reminders, and tool results

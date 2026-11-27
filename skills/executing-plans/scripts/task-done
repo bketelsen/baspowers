@@ -1,28 +1,74 @@
 #!/usr/bin/env bash
-# Close one task of an inline plan execution in a single call: run the task's
-# test command, keep its full output in the workspace, print the tail, and —
-# only if the command succeeded — append the completion line to the ledger.
-# A failing command records nothing: the task is not complete.
+# Close one task of an inline plan execution in a single call: verify the
+# task's plan/brief identity, run the task's test command, keep its full
+# output in the workspace, print the tail, and — only if the command
+# succeeded — append the completion line to the ledger. A failing command
+# records nothing: the task is not complete.
 #
-# Usage: task-done PLAN_FILE TASK_NUMBER BASE -- TEST_COMMAND [ARGS...]
+# Usage: task-done PLAN_FILE TASK_ID BASE [--brief FILE] -- TEST_COMMAND [ARGS...]
 #   BASE is the SHA task-start printed; the completion line records BASE..HEAD.
+#   --brief re-verifies the explicit brief against the plan, the task ID and
+#   BASE's place in HEAD's history before and after the test run.
 # Exit: the test command's exit status.
 set -euo pipefail
 
-if [ $# -lt 5 ] || [ "$4" != "--" ]; then
-  echo "usage: task-done PLAN_FILE TASK_NUMBER BASE -- TEST_COMMAND [ARGS...]" >&2
+die() {
+  echo "task-done: $*" >&2
   exit 2
-fi
+}
 
-plan=$1
-n=$2
-base=$3
-shift 4
+usage() {
+  echo "usage: task-done PLAN_FILE TASK_ID BASE [--brief FILE] -- TEST_COMMAND [ARGS...]" >&2
+  exit 2
+}
+
+brief=
+pos=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --brief)
+      [ $# -ge 2 ] || usage
+      brief=$2
+      shift 2
+      ;;
+    --)
+      break
+      ;;
+    -*)
+      echo "unknown option: $1" >&2
+      usage
+      ;;
+    *)
+      pos+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [ $# -eq 0 ] || [ "$1" != "--" ] || [ ${#pos[@]} -ne 3 ] || [ $# -lt 2 ]; then
+  usage
+fi
+plan=${pos[0]}
+n=${pos[1]}
+base=${pos[2]}
+case "$n" in
+  '' | *[!A-Za-z0-9._-]*) die "task ID '$n' must contain only letters, digits, '.', '_' or '-'" ;;
+esac
+shift
 sdd="$(cd "$(dirname "$0")/../../subagent-driven-development/scripts" && pwd)"
 
-git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
+git rev-parse --verify --quiet "${base}^{commit}" >/dev/null || die "bad BASE: $base"
+git merge-base --is-ancestor "$base" HEAD \
+  || die "BASE is not an ancestor of HEAD: ${base}..$(git rev-parse --short=7 HEAD)"
 
-dir=$("$sdd/sdd-workspace" "$plan")
+ws_args=("$sdd/sdd-workspace" "$plan")
+[ -z "$brief" ] || ws_args+=(--brief "$brief" --task "$n")
+
+dir=$("${BASH:-bash}" "${ws_args[@]}")
+start_head=$(git rev-parse HEAD)
+plan_hash=$(git hash-object -- "$plan")
+brief_hash=
+[ -z "$brief" ] || brief_hash=$(git hash-object -- "$brief")
 log="$dir/task-${n}-tests.log"
 ledger="$dir/progress.md"
 
@@ -45,8 +91,23 @@ if [ "$rc" -ne 0 ]; then
   exit "$rc"
 fi
 
+# The evidence is bound to the plan and brief the task started from. If
+# either changed during the run, or HEAD no longer descends from BASE, the
+# test result belongs to different inputs and is not recorded.
+if ! dir2=$("${BASH:-bash}" "${ws_args[@]}"); then
+  echo "task-done: plan or brief identity changed during the test run; Task $n NOT recorded" >&2
+  exit 2
+fi
+if [ "$dir2" != "$dir" ]; then
+  echo "task-done: plan revision changed during the test run; Task $n NOT recorded" >&2
+  exit 2
+fi
+[ "$(git rev-parse HEAD)" = "$start_head" ] || die "HEAD changed during tests; task not recorded"
+[ "$(git hash-object -- "$plan")" = "$plan_hash" ] || die "plan changed during tests; task not recorded"
+[ -z "$brief" ] || [ "$(git hash-object -- "$brief")" = "$brief_hash" ] || die "brief changed during tests; task not recorded"
+
 last=$(grep -v '^[[:space:]]*$' "$log" | tail -n 1) || last="(no output)"
 [ -f "$ledger" ] || printf '# SDD ledger — plan: %s\n' "$plan" > "$ledger"
-line="Task $n: complete (commits $(git rev-parse --short=7 "$base")..$(git rev-parse --short=7 HEAD), tests: $cmd → $last)"
+line="Task $n: complete (commits $(git rev-parse --short=7 "$base")..$(git rev-parse --short=7 HEAD), tests: $cmd → $last, plan: $plan_hash${brief_hash:+, brief: $brief_hash})"
 printf '%s\n' "$line" >> "$ledger"
 echo "ledger: $line"

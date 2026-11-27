@@ -13,8 +13,9 @@ When a requested feature needs more code than estimated, or a simplification add
 2. Cluster findings from all rounds; a shared root means the boundary is wrong.
 3. Price the options with net LOC each: keep patching, restructure around the root, shrink to the original goal, or restart clean.
 4. Choose one yourself. If the choice stays ambiguous, use baspowers:consulting-cross-model, then decide.
+   **Stop for reapproval** when the chosen option changes the approved plan graph or a protected decision the approval fixed — an accepted architectural decision, a contract, a review tier or risk level. Price the option, report what changes and why, and wait for the approver to accept the new revision. A remediation cannot re-decide an approved design on its own.
 5. Carry it out, and tell your human partner the numbers and the choice in under 150 words.
-   Wait for them only when the consult leaves the choice open or the choice adds scope they never asked for.
+   Wait for them only when the consult leaves the choice open, the choice adds scope they never asked for, or a change in step 4 needs reapproval.
 
 ## Red Flags
 
@@ -23,3 +24,4 @@ When a requested feature needs more code than estimated, or a simplification add
 | "Doing the four fixes now, and I'll flag the risk alongside" | Patching first is the next round of the same loop. Audit first. |
 | "Ship it behind a flag for the deadline, redesign after" | That is one option to price in the audit, not a decision to make by patching. |
 | "If the next round finds more, then we stop" | Every earlier round could have said that. Stop now. |
+| "The restructure is smaller than asking again" | If it changes the approved graph or a protected decision the approval fixed, it still needs reapproval. |

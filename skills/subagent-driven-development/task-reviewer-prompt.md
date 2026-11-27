@@ -15,8 +15,8 @@ Subagent (general-purpose):
   prompt: |
     You are reviewing one task's implementation: first whether it matches its
     requirements, then whether it is well-built. This is a task-scoped gate,
-    not a merge review — a broad whole-branch review happens separately after
-    all tasks are complete.
+    not a whole-branch ready handoff — a broad whole-branch review happens
+    separately after all tasks are complete.
 
     ## What Was Requested
 
@@ -24,6 +24,21 @@ Subagent (general-purpose):
 
     Global constraints from the spec/design that bind this task:
     [GLOBAL_CONSTRAINTS]
+
+    ## Repository Inputs
+
+    [REPO_INPUTS]
+
+    Read the paths named there: the repository's index, template or rubric
+    for this change, the PR template, and the gates and environment that
+    apply to the changed paths. Follow those rules; do not substitute a
+    remembered standard. If a path is not named, locate the canonical
+    instruction file and its index and name what you used; if a rule is
+    missing, name it as missing.
+    Do not assume a label, risk tier, language, test suite, or
+    copy/organization rule. A file extension is not a risk tier, and a
+    repository with no stated suite has no default suite. Use only what the
+    repository or the brief states, or mark the point unverified.
 
     ## What the Implementer Claims They Built
 
@@ -51,6 +66,11 @@ Subagent (general-purpose):
 
     Your review is read-only on this checkout. Do not mutate the working
     tree, the index, HEAD, or branch state in any way.
+
+    Read the diff file's header first: its base and head must equal
+    [BASE_SHA] and [HEAD_SHA]. If they differ, stop and report the mismatch;
+    a diff of another range is not this task's review. End your report with
+    the head you reviewed.
 
     ## You Do Not Dispatch Subagents
 
@@ -90,6 +110,30 @@ Subagent (general-purpose):
     genuinely missing or garbled, report that as a gap for the controller.
     Re-running the suite to regenerate what you failed to read is not
     verification; illegibility of the evidence is not invalidation of it.
+
+    ## Requirements Are Not Potential Defects
+
+    Keep two findings apart:
+
+    - **Exact requirement:** a rule quoted from the brief, plan, spec, or
+      repository that the task misses. Name its source. This gates.
+    - **Potential defect:** behavior that would hurt a person using the
+      software. It needs a concrete failing scenario or test. Without one,
+      report it as a ⚠️ item rather than a graded finding, and do not
+      inflate it.
+
+    The task's silence is not permission, but it is also not a requirement.
+    Do not dress a preference as a requirement, and do not downgrade a real
+    defect because no rule names it.
+
+    ## Risk Paths From the Diff
+
+    Name the risk paths this diff creates — call sites of a changed contract,
+    shared mutable state or lock order, data shape or migration,
+    configuration and environment, and any copy/organization rule in
+    changed text — and check each once. Derive them from the diff, not from
+    a label. Name the risk and the check in your report; "None" if the diff
+    creates none.
 
     ## Part 1: Spec Compliance
 
@@ -147,7 +191,7 @@ Subagent (general-purpose):
     Categorize issues by actual severity. Not everything is Critical.
     Important means this task cannot be trusted until it is fixed: incorrect
     or fragile behavior, a missed requirement, or maintainability damage you
-    would block a merge over — verbatim duplication of a logic block,
+    would block the ready handoff over — verbatim duplication of a logic block,
     swallowed errors, tests that assert nothing. "Coverage could be broader"
     and polish suggestions are Minor.
     If the plan or brief explicitly mandates something this rubric calls a
@@ -167,6 +211,13 @@ Subagent (general-purpose):
     - ⚠️ Cannot verify from diff: [requirements you could not verify from the
       diff alone, and what the controller should check — report alongside the
       ✅/❌ verdict for everything you could verify]
+
+    State the base and head you reviewed. Every issue names its kind:
+    `requirement` with its source, or `potential defect` with its failing
+    scenario.
+
+    ### Risk Paths
+    [Each path derived from the diff, the risk, and the one check you ran.]
 
     ### Strengths
     [What's well done? Be specific.]
@@ -195,13 +246,16 @@ Subagent (general-purpose):
   the shared constraints and requirement references cited by the brief: exact values, formats,
   and stated relationships between components (not process rules — those
   are already in this template)
+- `[REPO_INPUTS]` — paths to the repository's index/template/rubric, PR
+  template, applicable gates and environment, and the review-evidence path
 - `[REPORT_FILE]` — REQUIRED: the file the implementer wrote its detailed
   report to
 - `[BASE_SHA]` — commit before this task
 - `[HEAD_SHA]` — current commit
 - `[DIFF_FILE]` — REQUIRED: the path the controller wrote the review
-  package to (`bash scripts/review-package PLAN_FILE BASE HEAD` prints the unique
+  package to (`bash scripts/review-package PLAN_FILE BASE HEAD [--brief BRIEF --task ID]` prints the unique
   path it wrote; the package never enters the controller's context)
 
-**Reviewer returns:** Spec Compliance verdict (✅/❌/⚠️), Strengths, Issues
-(Critical/Important/Minor), Task quality verdict
+**Reviewer returns:** Spec Compliance verdict (✅/❌/⚠️), Risk paths,
+Strengths, Issues (Critical/Important/Minor, each tagged requirement or
+potential defect), Task quality verdict, and the reviewed head
