@@ -1,6 +1,12 @@
+# Codex Tool Notes
+
+Native Codex only. Nothing here is a requirement: the skills work without it,
+and on another host this file is evidence about Codex, not an instruction.
+
 ## Subagent dispatch requires multi-agent support
 
-Add to your Codex config (`~/.codex/config.toml`):
+Ask your human partner to add this to their Codex config
+(`~/.codex/config.toml`); do not edit live config yourself:
 
 ```toml
 [features]
@@ -8,7 +14,9 @@ multi_agent = true
 ```
 
 This enables the multi-agent tools that skills like
-`dispatching-parallel-agents` and `subagent-driven-development` use.
+`dispatching-parallel-agents` and `subagent-driven-development` use. When it is
+off, those skills' serial fallback applies: run the same isolated briefs one at
+a time and name the missing capability.
 Which tools you get depends on the multi-agent version your model
 preset selects (current presets run V2; older ones run V1). Trust your
 actual tool list over any table — including this one — when they

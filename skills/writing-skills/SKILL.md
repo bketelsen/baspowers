@@ -9,7 +9,13 @@ description: Use when creating new skills, editing existing skills, or verifying
 
 **Writing skills IS Test-Driven Development applied to process documentation.**
 
-**Personal skills live in your runtime's skills directory:** `~/.claude/skills/` on Claude Code, `~/.agents/skills/` on Codex.
+**A skill has one canonical home.** Personal scope is your runtime's skills
+directory — for example `~/.claude/skills/` on Claude Code, `~/.agents/skills/`
+on Codex, and the skills source the MindRoom loader scans. A plugin or a
+repository keeps its own `skills/` tree and registers it through that scope's
+manifest. Author the skill in one place and let every host load, link to, or
+re-export that copy; never write a second, synced copy for another host and
+never edit live host config as part of authoring (see Portable Skills).
 
 You write test cases (pressure scenarios with subagents), watch them fail (baseline behavior), write the skill (documentation), watch tests pass (agents comply), and refactor (close loopholes).
 
@@ -130,6 +136,23 @@ Link to file for heavy reference or reusable tools
 Add a quick-reference table, common-mistakes list, or red flags only when
 testing shows agents need them, and never as a restatement of the steps.
 
+## Portable Skills
+
+Write the requirement, not the tool. Name what must happen — "dispatch a
+fresh-context reviewer", "run the project's test command", "read the session
+record the host exposes" — and leave the tool name to a reference file. Then
+decide each of these once:
+
+| Decision | Rule |
+|---|---|
+| Scope | Plugin, repository, or personal. A skill that ships with the plugin is canonical in the plugin; a project skill stays in that project; a personal skill stays in your own skills directory. |
+| Registration | Follow that scope's discovery and registration rules. A repository skill uses the local template and index when required; state the trigger and the observable result. Plugin manifests describe native discovery; do not add entries unless that harness requires them. |
+| Copies | None. Other hosts load the canonical directory or a link to it. Do not sync a second copy, fork the text per host, or install a test copy somewhere else. |
+| Live config | Do not edit a user's settings, hooks, permissions, or plugin config to make a skill load. If a host needs a config line, tell your human partner what to add. |
+| Native behavior | Exact commands, tool names, and host quirks go in a named native reference (for example, `references/<host>-tools.md`) beside the skill, headed as native to that host. The `SKILL.md` body must work without it. |
+
+A skill that only works on one host is a host skill. Say so in the body and in
+the trigger, instead of writing text the other hosts will misread.
 
 ## Skill Discovery Optimization (SDO)
 
@@ -167,6 +190,8 @@ description: Use when implementing any feature or bugfix, before writing impleme
 
 **Content:**
 - Use concrete triggers, symptoms, and situations that signal this skill applies
+- Keep the trigger valid on any host: name the symptom and the task, never a tool
+  or one host's file path
 - Describe the *problem* (race conditions, inconsistent behavior) not *language-specific symptoms* (setTimeout, sleep)
 - Keep triggers technology-agnostic unless the skill itself is technology-specific
 - If skill is technology-specific, make that explicit in the trigger
@@ -279,7 +304,9 @@ Use skill name only, with explicit requirement markers:
 - ❌ Bad: `See skills/testing/test-driven-development` (unclear if required)
 - ❌ Bad: `@skills/testing/test-driven-development/SKILL.md` (force-loads, burns context)
 
-**Why no @ links:** `@` syntax force-loads files immediately, consuming 200k+ context before you need them.
+**Why no @ links:** some hosts force-load a referenced file as soon as it is
+mentioned, consuming context before you need it; a plain path or skill name
+keeps the load on demand.
 
 ## Flowchart Usage
 
@@ -641,6 +668,8 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 **RED Phase - Write Failing Test:**
 - [ ] Create pressure scenarios (3+ combined pressures for discipline skills)
 - [ ] Run scenarios WITHOUT skill - document baseline behavior verbatim
+  (where the role or host allows no delegation, run what you can and record
+  that the test was not independent)
 - [ ] Identify patterns in rationalizations/failures
 
 **GREEN Phase - Write Minimal Skill:**
@@ -648,6 +677,8 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 - [ ] YAML frontmatter with required `name` and `description` fields (max 1024 chars; see [spec](https://agentskills.io/specification))
 - [ ] Description starts with "Use when..." and includes specific triggers/symptoms
 - [ ] Description written in third person
+- [ ] Requirement stated as a capability, with any host-specific command in a marked reference file
+- [ ] One canonical scope and registration; no second copy for another host and no live-config edit
 - [ ] Keywords throughout for search (errors, symptoms, tools)
 - [ ] Clear overview with core principle
 - [ ] Address specific baseline failures identified in RED
@@ -671,7 +702,7 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 
 **Deployment:**
 - [ ] Commit skill to git
-- [ ] Push it when the repository is one your human partner owns and maintains; otherwise leave pushing to them
+- [ ] Publish only if authorized; otherwise hand off the reviewed branch.
 
 ## Discovery Workflow
 

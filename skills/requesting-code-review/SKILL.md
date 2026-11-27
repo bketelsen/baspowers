@@ -40,7 +40,11 @@ Read the canonical instructions and name the paths the reviewer must follow: the
 
 **3. Dispatch code reviewer subagent:**
 
-Dispatch a `general-purpose` subagent, filling the template at [code-reviewer.md](code-reviewer.md)
+Dispatch a fresh-context reviewer through the host's review or general-purpose
+agent type, filling the template at [code-reviewer.md](code-reviewer.md). If the
+role or host allows no dispatch, do the review yourself, label it author
+evidence, and do not report the branch as independently reviewed or as ready
+where the repository's gate requires an independent review.
 
 **Placeholders:**
 - `[DESCRIPTION]` - Brief summary of what you built
@@ -97,7 +101,7 @@ You: [Fix progress indicators]
 
 | Excuse | Reality |
 |--------|---------|
-| "I'll just review the diff myself instead of dispatching a reviewer" | You're the coordinator — reviewing the diff inline burns the context window you need to keep driving the work. Dispatch a reviewer subagent: the diff and the evaluation live in its context, and only the findings come back to you. |
+| "I'll just review the diff myself instead of dispatching a reviewer" | You're the coordinator — reviewing the diff inline burns the context window you need to keep driving the work. Dispatch a reviewer subagent: the diff and the evaluation live in its context, and only the findings come back to you. Where the role or host allows no dispatch, the review is author evidence: label it and do not call the branch independently reviewed. |
 | "The reviewer needs my whole session history to understand the change" | Hand it precisely crafted context, never your session's history. That keeps the reviewer on the work product, not your thought process. |
 | "Tests are green, so the review is a formality" | A green suite proves the tree's tests passed. It does not prove the requirements were met or that the change is ready. |
 | "It's docs-only, so skip the review" | Whether a docs-only change needs review is the repository's rule. File extensions are not a risk classification. |

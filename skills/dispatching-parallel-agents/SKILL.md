@@ -44,6 +44,24 @@ digraph when_to_use {
 - Need to understand full system state
 - Agents would interfere with each other
 
+## Check Capability and Role First
+
+Delegation needs three things: a role that permits it, a dispatch tool the host
+exposes, and enough slots for the branches you planned. Check all three before
+writing briefs.
+
+- Role or tool missing: run the domains serially in dependency order, give each
+  the same isolated brief, and report `Delegation unavailable: <capability>`.
+  Serial work takes longer; it is not a reason to skip the briefs or the
+  verification.
+- No delegation at all, so you do the work yourself: that is self-review, not
+  independent review. Say which domains were checked only by their author and do
+  not describe them as independently reviewed.
+- The role forbids the changes themselves: stop, report each domain with the
+  evidence you gathered, and hand off. Do not edit, and do not call the work done.
+- The host runs a batch concurrently: dispatch all branches together. The host
+runs slots or one at a time: start the next as one frees and say so.
+
 ## The Pattern
 
 ### 1. Identify Independent Domains
@@ -63,20 +81,23 @@ Each agent gets:
 - **Constraints:** Don't change other code
 - **Expected output:** Summary of what you found and fixed
 
-Agents that edit code in the same checkout must touch disjoint files and must not commit, stash, reset, or switch branches; you commit after reviewing. If their files could overlap, give each its own worktree (baspowers:using-git-worktrees) or run them sequentially.
+Agents that edit code in the same checkout must touch disjoint files and must not commit, stash, reset, or switch branches; you commit after reviewing. If their files could overlap, give each its own worktree (baspowers:using-git-worktrees) or run them sequentially. When the host gives each dispatch its own worktree, keep every editor inside its own tree: do not let one reach the host checkout or another agent's worktree.
 
 ### 3. Dispatch in Parallel
 
-Issue all three subagent dispatches in the same response — they run in parallel:
+Issue all the dispatches in the same response when the host runs a batch
+concurrently — they then run in parallel:
 
 ```text
-Subagent (general-purpose): "Fix agent-tool-abort.test.ts failures"
-Subagent (general-purpose): "Fix batch-completion-behavior.test.ts failures"
-Subagent (general-purpose): "Fix tool-approval-race-conditions.test.ts failures"
-# All three run concurrently.
+Subagent: "Fix agent-tool-abort.test.ts failures"
+Subagent: "Fix batch-completion-behavior.test.ts failures"
+Subagent: "Fix tool-approval-race-conditions.test.ts failures"
+# All three run concurrently where the host runs a batch.
 ```
 
-Multiple dispatch calls in one response = parallel execution. One per response = sequential.
+Multiple dispatch calls in one response run in parallel on a host that starts a
+batch; one per response is sequential. On a host with slots, start the next as
+one frees and say the run was not fully parallel.
 
 ### 4. Review and Prepare the Task Branch
 
@@ -167,3 +188,6 @@ After agents return:
 2. **Check for conflicts** - Did agents edit same code?
 3. **Run full suite** - Verify all fixes work together
 4. **Spot check** - Agents can make systematic errors
+5. **Label independence** - Name which results came from a fresh-context agent,
+   which from your own family, and which you checked yourself. A serial or
+   self-checked run is not an independent review.
