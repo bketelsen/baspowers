@@ -24,10 +24,28 @@ judgment settles what neither answers. Record every decision in the ledger as
 going. A wrong ruling costs rework your human partner can see and undo; a
 session parked on a question costs their whole day and buys nothing.
 
+Two limits keep a ruling from becoming a decision made in secret. The ledger
+is memory, not a record — it is deleted when the plan finishes — so every
+ruling also reaches your human partner in the final message, and a decision
+the repository requires goes through its own decision-record procedure. If none applies, report the rationale without inventing an ADR.
+A ruling that changes the plan's scope or its approved revision or the
+project's writable-file scope is not yours: report it, and the planner or
+approver decides.
+
 Four things stop you, and only these: an irreversible or destructive
 operation; a security-sensitive action; a side effect outside this worktree
 that norms say you ask about first (a merge, a push to a shared branch, a
-publish); and a plan so broken that every path forward is a guess even after baspowers:consulting-cross-model. For those, stop and ask.
+publish); and a plan so broken that every path forward is a guess even after
+baspowers:consulting-cross-model. For those, stop and ask. A change of scope
+or of the approved plan revision also returns to the planner or approver
+instead of becoming a ruling.
+
+## Repository Executor First
+
+Read the canonical repository workflow before selecting this skill. If the
+repository supplies a task-card runner or another required executor, use its
+exact command and respect its writable paths. Do not route the card through
+Baspowers helpers or dispatch merely because this skill is available.
 
 ## When to Use
 
@@ -152,16 +170,21 @@ a ledger file, not only in todos.
 - `git clean -fdx` will destroy the workspace (it's git-ignored scratch); if
   that happens, recover from `git log`.
 
-Read the plan once, note its context and Global Constraints, and create a
-todo per task. If the plan names a Spec, read that too: the spec is the
-authority the plan argues from, and conflicts inside the plan resolve
-against it. A plan with no reachable spec gets a ledger note saying so —
-rulings made without one are provisional.
+Use the plan path and exact revision named by the handoff or required
+approval, not the last commit that touched the path. For a tracked plan,
+compare the working file byte-for-byte with `git show <approved-commit>:<repo-relative-path>`
+(including staged or unstaged changes); for scratch compare the recorded
+content digest. If required approval is missing or the selected plan differs,
+return to the planner and approver before Task 1. Execution itself needs
+request or repository authorization even without a separate approval gate.
+Read the named requirements, shared constraints and phase outcomes, and
+create todos for the selected tasks. Use the derived brief fields from
+`writing-plans`; read any referenced requirements at the pinned revision.
 
 Before dispatching Task 1, scan the plan once for conflicts, writing down
 what you checked as you check it:
 
-- tasks that contradict each other or the plan's Global Constraints
+- tasks that contradict each other or the shared constraints cited by the briefs
 - anything the plan explicitly mandates that the review rubric treats as a
   defect (a test that asserts nothing, verbatim duplication of a logic block)
 
@@ -250,16 +273,23 @@ and fix-round diffs need it.
 
 - **Task brief:** before dispatching an implementer, run this skill's
   `bash scripts/task-brief PLAN_FILE N` — it extracts the task's full text to a
-  uniquely named file and prints the path. Compose the dispatch so the
-  brief stays the single source of
-  requirements. Your dispatch should contain: (1) one line on where this
-  task fits in the project; (2) the brief path, introduced as "read this
+  uniquely named file and prints the path. The script reads `### Task N`
+  headings; for a phase plan that numbers units differently (`P2-T1`), write
+  the brief file yourself from that phase/task section. Either way the brief
+  carries the plan path and revision, the phase and task IDs, the exact
+  writable files, the given tests (read-only unless the plan expressly makes
+  one writable), the exact test command — the project's own make target,
+  script or CI command first — and the stopping condition. Compose the
+  dispatch so the brief stays the single source of requirements. Your
+  dispatch should contain: (1) one line on where this task fits in the
+  project; (2) the brief path, introduced as "read this
   first — it is your requirements, with the exact values to use verbatim";
   (3) interfaces and decisions from earlier tasks that the brief cannot
   know; (4) your resolution of any ambiguity you noticed in the brief;
-  (5) the report-file path and report contract. Exact values (numbers,
-  magic strings, signatures, test cases) appear only in the brief. Never
-  make a subagent read the whole plan file.
+  (5) the report-file path and report contract; (6) the plan revision the
+  brief was cut from, when the project requires approval. Exact values
+  (numbers, magic strings, signatures, test cases) appear only in the brief.
+  Never make a subagent read the whole plan file.
 - **Report file:** name the implementer's report file after the brief
   (brief `…/task-N-brief.md` → report `…/task-N-report.md`) and put it in
   the dispatch prompt. The implementer writes the full report there and
@@ -297,7 +327,7 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 1. If it's a context problem, provide more context and re-dispatch with the same model
 2. If the task requires more reasoning, re-dispatch with a more capable model
 3. If the task is too large, break it into smaller pieces
-4. If the plan itself is wrong, rule on the correction, ledger it, and re-dispatch with the ruling carried in the dispatch
+4. If the plan itself is wrong, rule on the correction, ledger it, and re-dispatch with the ruling carried in the dispatch — unless the correction changes scope or the plan revision, which returns to the planner and approver
 
 **Never** ignore an escalation or force the same model to retry without changes. If the implementer said it's stuck, something needs to change.
 
@@ -324,7 +354,9 @@ needed.
   dispatch a task reviewer without a diff file.
 - **Reviewer inputs:** the task reviewer gets three paths — the same brief
   file, the report file, and the review package — plus the global
-  constraints that bind the task.
+  constraints that bind the task, the brief's writable-file list and its
+  given-test list. That is what lets it flag a write outside scope or a
+  given test edited to get green.
 - The global-constraints block you hand the reviewer is its attention
   lens. Copy the binding requirements verbatim from the plan's Global
   Constraints section or the spec: exact values, exact formats, and the
@@ -438,6 +470,11 @@ message as your other bookkeeping:
 - `Task <N>: complete (commits <base7>..<head7>, <K> parked)` after a
   tripped breaker
 
+When the task is its phase's last, the phase also needs its `Done when`
+outcome observed, with the output quoted in the ledger
+(`Phase P2: Done when — <outcome> — <evidence>`). A clean review of green
+tests is not that evidence: the phase is complete when the outcome is seen.
+
 Then mark the todo complete and move on. Never move to the next task while
 the review has open Critical/Important issues that are neither fixed nor
 parked-with-ruling at the cap.
@@ -451,10 +488,12 @@ printed path in the final review dispatch, so the final reviewer reads
 one file instead of re-deriving the branch diff with git commands. Dispatch
 on the most capable available model (see Model Selection), using
 baspowers:requesting-code-review's
-[code-reviewer.md](../requesting-code-review/code-reviewer.md), with the
+`code-reviewer.md` reference (load from `requesting-code-review` via the host loader, or read the sibling skill file in a checkout), with the
 package path as `[DIFF_FILE]`, the plan and spec paths, and the plan's Review
-Focus section verbatim if it has one. Point it at the ledger's deferred-minor
-and parked lines so it can triage which must be fixed before merge. Rule on
+focus cases from the plan or handoff, if any, and the plan's phase `Done when` lines so
+it can check each phase's outcome against evidence. Point it at the ledger's
+deferred-minor and parked lines so it can triage which must be fixed before
+merge. Rule on
 every line of its "Declined to judge" list and ledger each as
 `Final: Ruling: <behavior set aside> — <decision and why> — <cost if wrong>`.
 
@@ -467,7 +506,9 @@ Then run exactly one scoped re-review of the fix wave
 [re-review-prompt.md](re-review-prompt.md)).
 Adjudicate any residual findings as in the task loop's breaker: park with
 rulings, or rule on the load-bearing ones and ledger what you decided. Only
-the four classes above stop you here. There is no second fix wave —
+the four classes above stop you here; a change of scope or of the approved
+plan revision found now still returns to the planner and approver. There is
+no second fix wave —
 residual load-bearing findings surface to your human partner in the completion
 report when finishing-a-development-branch reports the branch state.
 
@@ -481,7 +522,7 @@ ruling, the list holds it. That list is the only place the decisions you
 took on your human partner's behalf reach them — they read it and rework
 whatever you got wrong. A ruling that dies with the workspace was a decision
 made in secret. Also list every `minor (deferred)` line under "Deferred
-minors", so deferred findings reach them too.
+minors", so deferred findings reach them too. Link any decision record created under repository rules.
 
 When the final whole-branch review is clean and its fixes are committed,
 delete this plan's workspace (`rm -rf <workspace>`) — the git history is
@@ -502,6 +543,8 @@ Use baspowers:finishing-a-development-branch.
 | "The fix was small, skip the re-review" | Unreviewed fixes are how regressions land. Every round ends with a scoped re-review. |
 | "Reviews slow the loop down" | The loop without reviews is just unverified churn. Reviews are the loop's brakes and steering. |
 | "Ledger bookkeeping is overhead" | The ledger is what survives compaction. Controllers without one have re-dispatched entire completed task sequences. |
+| "Tests are green, so the phase is done" | Green names behaviors. A phase closes on its observed `Done when`. |
+| "The given test is wrong, I'll adjust it" | That test is the acceptance criterion. Report it; the planner or approver decides. |
 | "The implementer spawned its own reviewer — free extra assurance" | It's a duplicate seat reviewing the same diff; the task review is the gate. A worker-spawned reviewer is a defect to flag, not rigor. |
 
 ## Example Workflow
@@ -510,13 +553,13 @@ Use baspowers:finishing-a-development-branch.
 You: I'm using Subagent-Driven Development to execute this plan.
 
 [Setup: worktree verified]
-[Read plan file once: docs/baspowers/plans/feature-plan.md]
-[Resolve workspace: bash scripts/sdd-workspace docs/baspowers/plans/feature-plan.md — no ledger inside, fresh start]
+[Read plan file once: <plan path> @ <plan revision>; approval matches]
+[Resolve workspace: bash scripts/sdd-workspace <plan path> — no ledger inside, fresh start]
 [Create todos for all tasks]
 
 Task 1: Hook installation script
 
-[Run task-brief for Task 1; dispatch implementer with brief + report paths + context]
+[Write brief for Task 1 (plan path + revision, IDs, writable files, given tests, test command, stop); dispatch implementer with brief + report paths + context]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
 
@@ -536,7 +579,7 @@ Task reviewer: Spec ✅ - all requirements met, nothing extra.
 
 Task 2: Recovery modes
 
-[Run task-brief for Task 2; dispatch implementer with brief + report paths + context]
+[Write brief for Task 2 (plan path + revision, IDs, writable files, given tests, test command, stop); dispatch implementer with brief + report paths + context]
 
 Implementer: [No questions]
   - Added verify/repair modes
